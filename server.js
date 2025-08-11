@@ -10,7 +10,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://reciperush-frontend.onrender.com', 'https://reciperush.uk']
+        : true,
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.static('.')); // Serve static files from current directory
 
@@ -226,16 +231,36 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'healthy', 
         timestamp: new Date().toISOString(),
-        service: 'RecipeRush E-Book Delivery'
+        service: 'RecipeRush E-Book Delivery',
+        environment: process.env.NODE_ENV || 'development',
+        port: process.env.PORT || 3000,
+        uptime: process.uptime()
+    });
+});
+
+// Root endpoint for basic connectivity test
+app.get('/', (req, res) => {
+    res.json({
+        message: 'RecipeRush API is running',
+        status: 'operational',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            health: '/health',
+            checkout: '/create-checkout-session',
+            webhook: '/webhook/stripe',
+            download: '/download/:token'
+        }
     });
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 RecipeRush server running on port ${PORT}`);
     console.log(`📚 E-book delivery system ready`);
     console.log(`💳 Stripe webhooks enabled`);
     console.log(`📧 Email delivery configured`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Server URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
 });
 
 module.exports = app;
