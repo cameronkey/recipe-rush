@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - RecipeRush</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-brand">
+                <h1>RecipeRush</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="catalog.html" class="nav-link">Catalog</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn-cart" onclick="openCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="success-content" style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 0 auto;">
+            <div class="success-icon" style="font-size: 4rem; color: #10b981; margin-bottom: 2rem;">
+                ✅
+            </div>
+            
+            <h1 style="color: #1f2937; margin-bottom: 1rem;">Payment Successful!</h1>
+            <p style="color: #6b7280; font-size: 1.2rem; margin-bottom: 2rem;">
+                Thank you for your purchase! Your e-book is on its way.
+            </p>
+            
+            <div class="success-details" style="background: #f8fafc; padding: 2rem; border-radius: 12px; margin: 2rem 0; text-align: left;">
+                <h3 style="color: #374151; margin-bottom: 1rem;">What happens next?</h3>
+                <ul style="color: #6b7280; line-height: 1.8;">
+                    <li>📧 You'll receive a confirmation email within minutes</li>
+                    <li>📚 Your e-book download link will be included in the email</li>
+                    <li>⏰ The download link is valid for 7 days</li>
+                    <li>💾 You can download the e-book up to 5 times</li>
+                </ul>
+            </div>
+            
+            <div class="success-actions" style="margin: 2rem 0;">
+                <a href="index.html" class="btn-primary" style="margin-right: 1rem;">
+                    Return to Home
+                </a>
+                <a href="catalog.html" class="btn-secondary">
+                    Browse More Recipes
+                </a>
+            </div>
+            
+            <div class="success-note" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 2rem;">
+                <p style="margin: 0; color: #856404; font-size: 0.9rem;">
+                    <strong>Can't find your email?</strong> Check your spam folder or contact us at 
+                    <a href="mailto:reciperush01@gmail.com" style="color: #856404;">reciperush01@gmail.com</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>RecipeRush</h4>
+                <p>Master the art of cooking with our exclusive recipe collection.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="catalog.html">Catalog</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="privacy-policy.html" target="_blank">Privacy Policy</a></li>
+                    <li><a href="terms-of-service.html" target="_blank">Terms of Service</a></li>
+                    <li><a href="refund-policy.html" target="_blank">Refund Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: reciperush01@gmail.com</p>
+                <p>Phone: +44 (0) 20 7123 4567</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 RecipeRush. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

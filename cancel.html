@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled - RecipeRush</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="nav-brand">
+                <h1>RecipeRush</h1>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="catalog.html" class="nav-link">Catalog</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn-cart" onclick="openCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-count" id="cartCount">0</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="cancel-content" style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 0 auto;">
+            <div class="cancel-icon" style="font-size: 4rem; color: #f59e0b; margin-bottom: 2rem;">
+                ⚠️
+            </div>
+            
+            <h1 style="color: #1f2937; margin-bottom: 1rem;">Payment Cancelled</h1>
+            <p style="color: #6b7280; font-size: 1.2rem; margin-bottom: 2rem;">
+                No worries! Your payment was cancelled and no charges were made.
+            </p>
+            
+            <div class="cancel-details" style="background: #f8fafc; padding: 2rem; border-radius: 12px; margin: 2rem 0; text-align: left;">
+                <h3 style="color: #374151; margin-bottom: 1rem;">What happened?</h3>
+                <ul style="color: #6b7280; line-height: 1.8;">
+                    <li>❌ Your payment was cancelled during checkout</li>
+                    <li>💰 No money was charged to your account</li>
+                    <li>🛒 Your cart items are still available</li>
+                    <li>📧 You can try again whenever you're ready</li>
+                </ul>
+            </div>
+            
+            <div class="cancel-actions" style="margin: 2rem 0;">
+                <a href="catalog.html" class="btn-primary" style="margin-right: 1rem;">
+                    Try Again
+                </a>
+                <a href="index.html" class="btn-secondary">
+                    Return to Home
+                </a>
+            </div>
+            
+            <div class="cancel-note" style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 1rem; border-radius: 6px; margin-top: 2rem;">
+                <p style="margin: 0; color: #0369a1; font-size: 0.9rem;">
+                    <strong>Need help?</strong> Contact us at 
+                    <a href="mailto:reciperush01@gmail.com" style="color: #0369a1;">reciperush01@gmail.com</a> 
+                    or call +44 (0) 20 7123 4567
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>RecipeRush</h4>
+                <p>Master the art of cooking with our exclusive recipe collection.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="catalog.html">Catalog</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="privacy-policy.html" target="_blank">Privacy Policy</a></li>
+                    <li><a href="terms-of-service.html" target="_blank">Terms of Service</a></li>
+                    <li><a href="refund-policy.html" target="_blank">Refund Policy</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact</h4>
+                <p>Email: reciperush01@gmail.com</p>
+                <p>Phone: +44 (0) 20 7123 4567</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 RecipeRush. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
