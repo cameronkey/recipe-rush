@@ -6,6 +6,9 @@
     <title>RecipeRush - Premium Recipe Collection</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
@@ -62,11 +65,17 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1 class="hero-title">Master the Art of Cooking</h1>
-            <p class="hero-subtitle">Discover 100+ exclusive recipes from world-class chefs</p>
+            <h1 class="hero-title">Transform Your Kitchen Into a Culinary Paradise</h1>
+            <p class="hero-subtitle">Get instant access to 100+ professional recipes that will make you cook like a master chef – guaranteed to impress every time</p>
             <div class="hero-cta">
-                <a href="catalog.html" class="btn-primary">Explore Recipes</a>
-                <a href="#featured" class="btn-secondary">Learn More</a>
+                <a href="#featured" class="btn-primary">
+                    <i class="fas fa-arrow-down"></i>
+                    Get Instant Access
+                </a>
+                <a href="#featured" class="btn-secondary">
+                    <i class="fas fa-play"></i>
+                    See What's Inside
+                </a>
             </div>
         </div>
     </section>
@@ -74,7 +83,7 @@
     <!-- Featured Product -->
     <section id="featured" class="featured">
         <div class="container">
-            <h2 class="section-title">Featured Collection</h2>
+            <h2 class="section-title">The Complete Recipe Collection</h2>
             <div class="product-card">
                 <div class="product-images">
                     <div class="main-image">
@@ -95,24 +104,32 @@
                         <span class="discount">50% OFF</span>
                     </div>
                     <p class="product-description">
-                        Master the art of cooking with our comprehensive recipe collection featuring 100+ exclusive recipes from world-class chefs. Perfect for beginners and experienced cooks alike.
+                        Transform your cooking forever with 100+ professionally tested recipes. Each recipe includes step-by-step photos, chef secrets, and foolproof techniques that guarantee restaurant-quality results every time.
                     </p>
                     <div class="product-features">
                         <div class="feature">
-                            <i class="fas fa-check"></i>
-                            <span>100+ Premium Recipes</span>
+                            <i class="fas fa-star"></i>
+                            <span>100+ Restaurant-Quality Recipes</span>
                         </div>
                         <div class="feature">
-                            <i class="fas fa-check"></i>
-                            <span>Step-by-step Instructions</span>
+                            <i class="fas fa-camera"></i>
+                            <span>Step-by-Step Photo Guides</span>
                         </div>
                         <div class="feature">
-                            <i class="fas fa-check"></i>
-                            <span>Nutritional Information</span>
+                            <i class="fas fa-clock"></i>
+                            <span>Quick 30-Minute Meals</span>
                         </div>
                         <div class="feature">
-                            <i class="fas fa-check"></i>
-                            <span>Chef Tips & Techniques</span>
+                            <i class="fas fa-award"></i>
+                            <span>Professional Chef Secrets</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-download"></i>
+                            <span>Instant Digital Download</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-mobile-alt"></i>
+                            <span>Works on All Devices</span>
                         </div>
                     </div>
                     <div class="product-actions">
@@ -122,8 +139,8 @@
                             <button onclick="increaseQuantity()">+</button>
                         </div>
                         <button class="btn-add-cart" onclick="addToCart()">
-                            <i class="fas fa-shopping-cart"></i>
-                            Add to Cart
+                            <i class="fas fa-bolt"></i>
+                            Get Instant Access
                         </button>
                     </div>
                 </div>
@@ -159,7 +176,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Contact</h4>
-                                            <p>Email: info@reciperush.com</p>
+                    <p>Email: reciperush01@gmail.com</p>
                         <p>Phone: +44 (0) 20 7123 4567</p>
                 </div>
             </div>
