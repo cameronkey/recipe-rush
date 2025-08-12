@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -74,52 +75,7 @@
     <!-- Contact Content -->
     <section class="contact-content">
         <div class="container">
-            <div class="contact-grid">
-                <div class="contact-info">
-                    <h2>Get in Touch</h2>
-                    <p>Questions about your recipe collection or need cooking support? We're here to help you succeed in the kitchen!</p>
-                    
-                    <div class="contact-methods">
-                        <div class="contact-method">
-                            <i class="fas fa-envelope"></i>
-                            <div>
-                                <h3>Email</h3>
-                                <p>reciperush01@gmail.com</p>
-                                <p>Fast response within 24 hours</p>
-                            </div>
-                        </div>
-                        
-                        <div class="contact-method">
-                            <i class="fas fa-phone"></i>
-                            <div>
-                                <h3>Phone</h3>
-                                <p>+44 (0) 20 7123 4567</p>
-                                <p>Mon-Fri: 9AM-6PM GMT</p>
-                            </div>
-                        </div>
-                        
-                        <div class="contact-method">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <div>
-                                <h3>Address</h3>
-                                <p>123 Recipe Street</p>
-                                <p>Culinary District, London SW1A 1AA</p>
-                            </div>
-                        </div>
-                        
-                        <div class="contact-method">
-                            <i class="fas fa-clock"></i>
-                            <div>
-                                <h3>Business Hours</h3>
-                                <p>Monday - Friday: 9AM - 6PM GMT</p>
-                                <p>Saturday: 10AM - 4PM GMT</p>
-                                <p>Sunday: Closed</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="contact-form-container">
+            <div class="contact-form-container">
                     <h2>Send us a Message</h2>
                     <form class="contact-form" id="contactForm">
                         <div class="form-row">
@@ -141,7 +97,7 @@
                         <div class="form-group">
                             <label for="subject">Subject *</label>
                             <select id="subject" name="subject" required>
-                                <option value="">Select a subject</option>
+                                <option value="" disabled selected>Select a subject</option>
                                 <option value="general">General Inquiry</option>
                                 <option value="support">Technical Support</option>
                                 <option value="billing">Billing Question</option>
@@ -167,7 +123,6 @@
                         <button type="submit" class="btn-primary">Send Message</button>
                     </form>
                 </div>
-            </div>
         </div>
     </section>
 

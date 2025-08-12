@@ -320,30 +320,14 @@ function setupContactForm() {
     const contactForm = document.getElementById('contactForm');
     if (!contactForm) return;
 
-    // Add real-time validation
-    const inputs = contactForm.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('blur', validateField);
-        input.addEventListener('input', clearFieldError);
-    });
-
     // Handle form submission
     contactForm.addEventListener('submit', handleContactFormSubmission);
 }
 
-// Setup form validation
+// Setup form validation - simplified
 function setupFormValidation() {
-    const form = document.getElementById('contactForm');
-    if (!form) return;
-
-    // Add custom validation attributes
-    const requiredFields = form.querySelectorAll('[required]');
-    requiredFields.forEach(field => {
-        field.addEventListener('invalid', function(e) {
-            e.preventDefault();
-            showFieldError(this, 'This field is required');
-        });
-    });
+    // HTML5 validation is sufficient for basic required field validation
+    console.log('Form validation setup complete');
 }
 
 // Validate individual field
@@ -351,11 +335,14 @@ function validateField(event) {
     const field = event.target;
     const value = field.value.trim();
     
+    console.log('Validating field:', field.name, 'Value:', value, 'Required:', field.hasAttribute('required'));
+    
     // Remove existing error
     clearFieldError(event);
     
     // Check if required
     if (field.hasAttribute('required') && !value) {
+        console.log('Field is required but empty:', field.name);
         showFieldError(field, 'This field is required');
         return false;
     }
@@ -364,6 +351,7 @@ function validateField(event) {
     if (field.type === 'email' && value) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
+            console.log('Email validation failed:', field.name);
             showFieldError(field, 'Please enter a valid email address');
             return false;
         }
@@ -373,17 +361,29 @@ function validateField(event) {
     if (field.id === 'firstName' || field.id === 'lastName') {
         const nameRegex = /^[a-zA-Z\s]+$/;
         if (value && !nameRegex.test(value)) {
+            console.log('Name validation failed:', field.name);
             showFieldError(field, 'Please enter only letters and spaces');
+            return false;
+        }
+    }
+    
+    // Subject validation (must select an option)
+    if (field.id === 'subject' && field.hasAttribute('required')) {
+        if (!value || value === '') {
+            console.log('Subject validation failed:', field.name);
+            showFieldError(field, 'Please select a subject');
             return false;
         }
     }
     
     // Message length validation
     if (field.id === 'message' && value.length < 10) {
+        console.log('Message validation failed:', field.name, 'Length:', value.length);
         showFieldError(field, 'Message must be at least 10 characters long');
         return false;
     }
     
+    console.log('Field validation passed:', field.name);
     return true;
 }
 
@@ -430,29 +430,30 @@ function clearFieldError(event) {
 function handleContactFormSubmission(event) {
     event.preventDefault();
     
-    // Validate all fields
-    const fields = event.target.querySelectorAll('input, select, textarea');
-    let isValid = true;
+    console.log('Form submission started');
     
-    fields.forEach(field => {
-        if (!validateField({ target: field })) {
-            isValid = false;
-        }
-    });
+    // Get the form element
+    const form = event.target;
     
-    if (!isValid) {
-        showNotification('Please correct the errors in the form', 'error');
+    // Check if form is valid using HTML5 validation
+    if (!form.checkValidity()) {
+        console.log('HTML5 validation failed');
+        form.reportValidity();
         return;
     }
     
+    console.log('Form validation passed, collecting data');
+    
     // Collect form data
-    const formData = new FormData(event.target);
+    const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
+    
+    console.log('Form data collected:', data);
     
     // Add timestamp
     data.timestamp = new Date().toISOString();
     
-    // Simulate form submission
+    // Submit form
     submitContactForm(data);
 }
 
@@ -464,36 +465,55 @@ function submitContactForm(data) {
     submitBtn.textContent = 'Sending...';
     submitBtn.disabled = true;
     
-    // Simulate API call
-    setTimeout(() => {
-        // Success response
-        showNotification('Thank you for your message! We\'ll get back to you within 24 hours.', 'success');
-        
-        // Reset form
-        document.getElementById('contactForm').reset();
-        
-        // Clear any error states
-        const fields = document.querySelectorAll('#contactForm input, #contactForm select, #contactForm textarea');
-        fields.forEach(field => {
-            field.classList.remove('error');
-            field.style.borderColor = '#ddd';
+    // Initialize EmailJS
+    emailjs.init("3yTB8siz9rVmr9gRu");
+    
+    // Prepare email template parameters to match the EmailJS template
+    const templateParams = {
+        name: `${data.firstName} ${data.lastName}`,
+        message: data.message,
+        time: new Date().toLocaleString()
+    };
+    
+    // Send email using EmailJS
+    emailjs.send('service_hngth6v', 'template_nme9xdx', templateParams)
+        .then(function(response) {
+            console.log('SUCCESS!', response.status, response.text);
+            
+            // Success response
+            showNotification('Thank you for your message! We\'ll get back to you within 24 hours.', 'success');
+            
+            // Reset form
+            document.getElementById('contactForm').reset();
+            
+            // Clear any error states
+            const fields = document.querySelectorAll('#contactForm input, #contactForm select, #contactForm textarea');
+            fields.forEach(field => {
+                field.classList.remove('error');
+                field.style.borderColor = '#ddd';
+            });
+            
+            // Remove error messages
+            const errors = document.querySelectorAll('.field-error');
+            errors.forEach(error => error.remove());
+            
+            // Reset button
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            
+            // Track the submission
+            trackContactSubmission(data);
+            
+        }, function(error) {
+            console.log('FAILED...', error);
+            
+            // Show error message
+            showNotification('Sorry, there was an error sending your message. Please try again or email us directly at reciperush01@gmail.com', 'error');
+            
+            // Reset button
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         });
-        
-        // Remove error messages
-        const errors = document.querySelectorAll('.field-error');
-        errors.forEach(error => error.remove());
-        
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        
-        // Log the submission (in real app, this would go to server)
-        console.log('Contact form submitted:', data);
-        
-        // Send to analytics or CRM (example)
-        trackContactSubmission(data);
-        
-    }, 1500);
 }
 
 // Track contact form submission
