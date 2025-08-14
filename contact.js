@@ -453,7 +453,7 @@ function handleContactFormSubmission(event) {
     // Add timestamp
     data.timestamp = new Date().toISOString();
     
-    // Submit form
+    // Submit form directly
     submitContactForm(data);
 }
 
