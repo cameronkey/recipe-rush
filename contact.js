@@ -47,7 +47,7 @@ function closeMobileMenu() {
 // Checkout functionality
 function showCheckoutForm() {
     if (cart.length === 0) {
-        showNotification('Your cart is empty!', 'error');
+        showNotification('Your cart is empty!', 'error', 3000);
         return;
     }
     
@@ -172,7 +172,7 @@ function handleCheckoutSubmit(event) {
     
     // Check if Stripe is initialized
     if (!window.stripe) {
-        showNotification('Payment system not ready. Please try again.', 'error');
+        showNotification('Payment system not ready. Please try again.', 'error', 4000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -187,7 +187,7 @@ function handleCheckoutSubmit(event) {
     
     // Validate payment fields
     if (!cardNumber || !cardExpiry || !cardCvc) {
-        showNotification('Please fill in all payment fields.', 'error');
+        showNotification('Please fill in all payment fields.', 'error', 3000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -197,7 +197,7 @@ function handleCheckoutSubmit(event) {
     
     // Basic card validation
     if (cardNumber.length < 13 || cardNumber.length > 19) {
-        showNotification('Please enter a valid card number.', 'error');
+        showNotification('Please enter a valid card number.', 'error', 3000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -206,7 +206,7 @@ function handleCheckoutSubmit(event) {
     }
     
     if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-        showNotification('Please enter expiry date in MM/YY format.', 'error');
+        showNotification('Please enter expiry date in MM/YY format.', 'error', 3000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -215,7 +215,7 @@ function handleCheckoutSubmit(event) {
     }
     
     if (cardCvc.length < 3 || cardCvc.length > 4) {
-        showNotification('Please enter a valid CVC.', 'error');
+        showNotification('Please enter a valid CVC.', 'error', 3000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -273,7 +273,17 @@ function handleCheckoutSubmit(event) {
         document.body.removeChild(tempContainer);
         
         console.error('Payment error:', error);
-        showNotification('Payment processing failed. Please try again.', 'error');
+        
+        // Show specific error messages
+        let errorMessage = 'Payment processing failed. Please try again.';
+        
+        if (error.message && error.message.includes('timeout')) {
+            errorMessage = 'Payment request timed out. Please check your connection and try again.';
+        } else if (error.message && error.message.includes('network')) {
+            errorMessage = 'Network error. Please check your internet connection.';
+        }
+        
+        showNotification(errorMessage, 'error', 5000);
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         buttonText.classList.remove('hidden');
@@ -438,6 +448,18 @@ function handleContactFormSubmission(event) {
     // Check if form is valid using HTML5 validation
     if (!form.checkValidity()) {
         console.log('HTML5 validation failed');
+        
+        // Show specific error messages for common validation issues
+        const requiredFields = form.querySelectorAll('[required]');
+        const emptyFields = Array.from(requiredFields).filter(field => !field.value.trim());
+        
+        if (emptyFields.length > 0) {
+            const fieldName = emptyFields[0].placeholder || emptyFields[0].name || 'required field';
+            showNotification(`Please fill in ${fieldName}`, 'error', 3000);
+        } else {
+            showNotification('Please check all required fields', 'error', 3000);
+        }
+        
         form.reportValidity();
         return;
     }
@@ -507,8 +529,20 @@ function submitContactForm(data) {
         }, function(error) {
             console.log('FAILED...', error);
             
-            // Show error message
-            showNotification('Sorry, there was an error sending your message. Please try again or email us directly at reciperush01@gmail.com', 'error');
+            // Show specific error messages based on error type
+            let errorMessage = 'Sorry, there was an error sending your message.';
+            
+            if (error.status === 0) {
+                errorMessage = 'Network error. Please check your internet connection.';
+            } else if (error.status === 400) {
+                errorMessage = 'Invalid form data. Please check your inputs.';
+            } else if (error.status === 500) {
+                errorMessage = 'Server error. Please try again later.';
+            } else if (error.text && error.text.includes('quota')) {
+                errorMessage = 'Email service limit reached. Please try again later.';
+            }
+            
+            showNotification(errorMessage, 'error', 5000);
             
             // Reset button
             submitBtn.textContent = originalText;
@@ -661,6 +695,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Enhanced notification helper functions
+function showQuickNotification(message, type = 'info') {
+    showNotification(message, type, 2000); // Quick notifications for minor actions
+}
+
+function showPersistentNotification(message, type = 'info') {
+    showNotification(message, type, 8000); // Longer notifications for important info
+}
+
+function showErrorNotification(message, duration = 4000) {
+    showNotification(message, 'error', duration);
+}
+
+function showSuccessNotification(message, duration = 3000) {
+    showNotification(message, 'success', duration);
+}
+
 // Export functions for use in other scripts
 window.contactFunctions = {
     validateField,
@@ -669,5 +720,9 @@ window.contactFunctions = {
     handleContactFormSubmission,
     submitContactForm,
     trackContactSubmission,
-    handleNewsletterSubscription
+    handleNewsletterSubscription,
+    showQuickNotification,
+    showPersistentNotification,
+    showErrorNotification,
+    showSuccessNotification
 };

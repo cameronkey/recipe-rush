@@ -20,7 +20,7 @@
             </div>
             
             <!-- Mobile Burger Menu Button -->
-            <button class="burger-menu" onclick="toggleMobileMenu()">
+            <button class="burger-menu" onclick="toggleMobileMenu()" aria-controls="mobile-menu" aria-expanded="false">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -41,10 +41,10 @@
             
             <!-- Mobile Navigation Overlay -->
             <div class="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
-            <div class="mobile-menu">
+            <div class="mobile-menu" id="mobile-menu">
                 <div class="mobile-menu-header">
                     <h2>Menu</h2>
-                    <button class="close-mobile-menu" onclick="closeMobileMenu()">
+                    <button class="close-mobile-menu" onclick="closeMobileMenu()" aria-label="Close menu">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -59,6 +59,20 @@
                         <span class="cart-count">0</span>
                     </button>
                 </div>
+                <div class="mobile-social-links">
+                    <a href="https://www.youtube.com/@Recipe_Rush" target="_blank" aria-label="YouTube">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                    <a href="https://www.tiktok.com/@recipe_rush0?lang=en-GB" target="_blank" aria-label="TikTok">
+                        <i class="fab fa-tiktok"></i>
+                    </a>
+                    <a href="https://www.instagram.com/recipe__rush/" target="_blank" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" target="_blank" aria-label="Facebook" class="facebook-placeholder">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                </div>
             </div>
         </nav>
     </header>
@@ -67,7 +81,7 @@
     <section class="hero">
         <div class="hero-content">
             <h1 class="hero-title">Transform Your Kitchen Into a Culinary Paradise</h1>
-            <p class="hero-subtitle">Get instant access to 100+ professional recipes that will make you cook like a master chef – guaranteed to impress every time</p>
+            <p class="hero-subtitle">Get instant access to 80 professional recipes that will make you cook like a master chef – guaranteed to impress every time</p>
             <div class="hero-cta">
                 <a href="#featured" class="btn-primary">
                     <i class="fas fa-arrow-down"></i>
@@ -105,16 +119,16 @@
                         <span class="discount">50% OFF</span>
                     </div>
                     <p class="product-description">
-                        Transform your cooking forever with 100+ professionally tested recipes. Each recipe includes step-by-step photos, chef secrets, and foolproof techniques that guarantee restaurant-quality results every time.
+                        Transform your cooking forever with 80 professionally tested recipes. Each recipe includes step-by-step photos, chef secrets, and foolproof techniques that guarantee restaurant-quality results every time.
                     </p>
                     <div class="product-features">
                         <div class="feature">
                             <i class="fas fa-star"></i>
-                            <span>100+ Restaurant-Quality Recipes</span>
+                            <span>80 Restaurant-Quality Recipes</span>
                         </div>
                         <div class="feature">
-                            <i class="fas fa-camera"></i>
-                            <span>Step-by-Step Photo Guides</span>
+                            <i class="fas fa-leaf"></i>
+                            <span>Vegan, Vegetarian, Pescatarian, Carnivore, Keto, High Protein Desserts</span>
                         </div>
                         <div class="feature">
                             <i class="fas fa-clock"></i>
@@ -170,15 +184,28 @@
                 <div class="footer-section">
                     <h4>Legal</h4>
                     <ul>
-                        <li><a href="privacy-policy.pdf" target="_blank">Privacy Policy</a></li>
-                        <li><a href="terms-of-service.pdf" target="_blank">Terms of Service</a></li>
-                        <li><a href="refund-policy.pdf" target="_blank">Refund Policy</a></li>
+                        <li><a href="privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="refund-policy.html">Refund Policy</a></li>
                     </ul>
                 </div>
-                <div class="footer-section">
+                                <div class="footer-section">
                     <h4>Contact</h4>
                     <p>Email: reciperush01@gmail.com</p>
-                        <p>Phone: +44 (0) 20 7123 4567</p>
+                    <div class="social-links">
+                        <a href="https://www.youtube.com/@Recipe_Rush" target="_blank" aria-label="YouTube">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                        <a href="https://www.tiktok.com/@recipe_rush0?lang=en-GB" target="_blank" aria-label="TikTok">
+                            <i class="fab fa-tiktok"></i>
+                        </a>
+                        <a href="https://www.instagram.com/recipe__rush/" target="_blank" aria-label="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" target="_blank" aria-label="Facebook" class="facebook-placeholder">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
             <div class="footer-bottom">

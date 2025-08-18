@@ -16,6 +16,7 @@ function toggleMobileMenu() {
 function openMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
     const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+    const burgerButton = document.querySelector('.burger-menu');
     
     mobileMenu.style.display = 'block';
     mobileMenuOverlay.style.display = 'block';
@@ -25,6 +26,11 @@ function openMobileMenu() {
         mobileMenu.classList.add('active');
     }, 10);
     
+    // Update aria-expanded for accessibility
+    if (burgerButton) {
+        burgerButton.setAttribute('aria-expanded', 'true');
+    }
+    
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
 }
@@ -32,6 +38,7 @@ function openMobileMenu() {
 function closeMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
     const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+    const burgerButton = document.querySelector('.burger-menu');
     
     mobileMenu.classList.remove('active');
     
@@ -40,6 +47,11 @@ function closeMobileMenu() {
         mobileMenu.style.display = 'none';
         mobileMenuOverlay.style.display = 'none';
     }, 300);
+    
+    // Update aria-expanded for accessibility
+    if (burgerButton) {
+        burgerButton.setAttribute('aria-expanded', 'false');
+    }
     
     // Restore body scroll
     document.body.style.overflow = 'auto';
@@ -53,13 +65,14 @@ const cartTotal = document.getElementById('cartTotal');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, checking Stripe availability...');
-    
-    // Check if Stripe is available
+    // Check if Stripe is available (only log if we're on a page that needs it)
     if (typeof Stripe !== 'undefined') {
         console.log('✅ Stripe library loaded successfully');
     } else {
-        console.error('❌ Stripe library not found! Check if script is loaded');
+        // Only show error on pages that actually need Stripe (like checkout)
+        if (window.location.pathname.includes('checkout') || window.location.pathname.includes('payment')) {
+            console.error('❌ Stripe library not found! Check if script is loaded');
+        }
     }
     
     loadCartFromStorage();
@@ -487,51 +500,68 @@ function processPayment(paymentMethod, firstName, lastName, email) {
 }
 
 // Utility functions
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration = 4000) {
+    // Remove existing notifications to prevent stacking
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+        notification.remove();
+    });
+
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        color: white;
-        font-weight: 600;
-        z-index: 3000;
-        max-width: 300px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
-
-    // Set background color based on type
-    const colors = {
-        success: '#27ae60',
-        error: '#e74c3c',
-        info: '#3498db',
-        warning: '#f39c12'
+    
+    // Create icon based on type
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ',
+        warning: '⚠'
     };
-    notification.style.backgroundColor = colors[type] || colors.info;
+    
+    // Create notification content
+    // Create notification content safely
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'notification-icon';
+    iconSpan.textContent = icons[type] || icons.info;
 
-    notification.textContent = message;
+    const messageSpan = document.createElement('span');
+    messageSpan.className = 'notification-message';
+    messageSpan.textContent = message;
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'notification-close';
+    closeButton.textContent = '×';
+    closeButton.onclick = function() { this.parentElement.remove(); };
+
+    notification.appendChild(iconSpan);
+    notification.appendChild(messageSpan);
+    notification.appendChild(closeButton);
+    
+    // Add to page
     document.body.appendChild(notification);
 
-    // Animate in
+    // Animate in from top
+    notification.style.transform = 'translateY(-100%)';
+    notification.style.opacity = '0';
+    
     setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
+        notification.style.transform = 'translateY(0)';
+        notification.style.opacity = '1';
     }, 100);
 
-    // Remove after 5 seconds
-    setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
+    // Auto-remove after specified duration
+    if (duration > 0) {
         setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 5000);
+            notification.style.transform = 'translateY(-100%)';
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, duration);
+    }
 }
 
 // Product image functionality
