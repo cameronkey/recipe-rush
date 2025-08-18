@@ -1,6 +1,9 @@
 // Global variables
 let cart = [];
 
+// Stripe Configuration
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RuwBlFSn63qgmcHtd7LdeT7SuT23AzWE0BPDucH5hVpbrVnsnAEoFU6odPchzz7UPgdVFRcBjNCFvo4P3m6b4rg00kmv89OFc';
+
 // Mobile Menu Functions
 function toggleMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
@@ -264,38 +267,21 @@ function showCheckoutForm() {
     closeCart();
     document.getElementById('checkoutModal').style.display = 'block';
     
-    console.log('Checkout modal displayed, initializing Stripe...');
+    console.log('Checkout modal displayed, initializing checkout form...');
     
-    // Initialize Stripe immediately and also after a delay as backup
+    // Initialize checkout form
     initializeStripe();
-    setTimeout(() => {
-        console.log('Backup Stripe initialization...');
-        if (!window.stripe || !document.querySelector('#card-element .StripeElement')) {
-            console.log('Re-initializing Stripe...');
-            initializeStripe();
-        }
-    }, 500);
 }
 
 function closeCheckout() {
     document.getElementById('checkoutModal').style.display = 'none';
     // Reset form
     document.getElementById('checkoutForm').reset();
-    // Clear any errors
-    document.getElementById('card-errors').textContent = '';
 }
 
 function initializeStripe() {
     try {
-        console.log('Creating Stripe instance...');
-        
-        // Stripe publishable key for RecipeRush (LIVE)
-        window.stripe = Stripe('pk_live_51RuwBlFSn63qgmcHtd7LdeT7SuT23AzWE0BPDucH5hVpbrVnsnAEoFU6odPchzz7UPgdVFRcBjNCFvo4P3m6b4rg00kmv89OFc');
-        
-        console.log('Stripe instance created successfully');
-        
-        // Set up payment field formatting and validation
-        setupPaymentFields();
+        console.log('Setting up checkout form...');
         
         // Handle form submission
         const checkoutForm = document.getElementById('checkoutForm');
@@ -309,45 +295,15 @@ function initializeStripe() {
             console.error('Checkout form not found!');
         }
         
-        console.log('Stripe initialized successfully - payment fields ready');
+        console.log('Checkout form initialized successfully');
         
     } catch (error) {
-        console.error('Error initializing Stripe:', error);
-        showNotification('Payment system initialization failed. Please refresh and try again.', 'error');
+        console.error('Error initializing checkout form:', error);
+        showNotification('Checkout system initialization failed. Please refresh and try again.', 'error');
     }
 }
 
-function setupPaymentFields() {
-    // Card number formatting
-    const cardNumberInput = document.getElementById('cardNumber');
-    if (cardNumberInput) {
-        cardNumberInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
-        });
-    }
-    
-    // Expiry date formatting
-    const expiryInput = document.getElementById('cardExpiry');
-    if (expiryInput) {
-        expiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2);
-            }
-            e.target.value = value;
-        });
-    }
-    
-    // CVC formatting
-    const cvcInput = document.getElementById('cardCvc');
-    if (cvcInput) {
-        cvcInput.addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '');
-        });
-    }
-}
+
 
 function handleCheckoutSubmit(event) {
     event.preventDefault();
@@ -366,137 +322,98 @@ function handleCheckoutSubmit(event) {
     const lastName = document.getElementById('lastName').value;
     const email = document.getElementById('email').value;
     
-    // Check if Stripe is initialized
-    if (!window.stripe) {
-        showNotification('Payment system not ready. Please try again.', 'error');
+    // Basic validation
+    if (!firstName || !lastName || !email) {
+        showNotification('Please fill in all customer details.', 'error');
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         spinner.classList.add('hidden');
         return;
     }
     
-    // Get payment data
-    const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
-    const cardExpiry = document.getElementById('cardExpiry').value;
-    const cardCvc = document.getElementById('cardCvc').value;
-    
-    // Validate payment fields
-    if (!cardNumber || !cardExpiry || !cardCvc) {
-        showNotification('Please fill in all payment fields.', 'error');
+    // Email validation
+    if (!email.includes('@')) {
+        showNotification('Please enter a valid email address.', 'error');
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         spinner.classList.add('hidden');
         return;
     }
     
-    // Basic card validation
-    if (cardNumber.length < 13 || cardNumber.length > 19) {
-        showNotification('Please enter a valid card number.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-    
-    if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-        showNotification('Please enter expiry date in MM/YY format.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-    
-    if (cardCvc.length < 3 || cardCvc.length > 4) {
-        showNotification('Please enter a valid CVC.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-    
-    // Create payment method using Stripe Elements
-    const elements = window.stripe.elements();
-    const cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#424770',
-            },
-        },
-    });
-    
-    // Create a temporary container to mount the card element
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    document.body.appendChild(tempContainer);
-    
-    cardElement.mount(tempContainer);
-    
-    // Create payment method
-    window.stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-            name: `${firstName} ${lastName}`,
-            email: email,
-        },
-    }).then(function(result) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-        
-        if (result.error) {
-            // Show error
-            const errorElement = document.getElementById('card-errors');
-            errorElement.textContent = result.error.message;
-            
-            // Re-enable button
-            submitButton.disabled = false;
-            buttonText.textContent = 'Pay Now';
-            spinner.classList.add('hidden');
-        } else {
-            // Payment method created successfully
-            processPayment(result.paymentMethod, firstName, lastName, email);
-        }
-    }).catch(function(error) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-        
-        console.error('Payment error:', error);
-        showNotification('Payment processing failed. Please try again.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-    });
+    // Process payment directly (no card details needed for Stripe Checkout)
+    processPayment(null, firstName, lastName, email);
 }
 
-function processPayment(paymentMethod, firstName, lastName, email) {
-    // In a real implementation, you would send this to your server
-    // to create a payment intent and complete the payment
-    
-    // For now, we'll simulate a successful payment
-    setTimeout(() => {
-        // Simulate successful payment
-        showNotification('Payment successful! Processing your order...', 'success');
+async function processPayment(paymentMethod, firstName, lastName, email) {
+    try {
+        showNotification('Creating checkout session...', 'info');
         
-        // Clear cart
-        cart = [];
-        saveCartToStorage();
-        updateCartDisplay();
+        // Prepare cart items for Stripe
+        const items = cart.map(item => ({
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image || 'https://via.placeholder.com/150x150?text=Recipe'
+        }));
         
-        // Close checkout
-        closeCheckout();
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Show success message
-        showNotification('Order completed! Check your email for your e-book download link.', 'success');
+        // Create checkout session via your backend
+        const response = await fetch('/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                items: items,
+                customerEmail: email,
+                customerName: `${firstName} ${lastName}`,
+        // Create checkout session via your backend
+        const response = await fetch('/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                items: items,
+                customerEmail: email,
+                customerName: `${firstName} ${lastName}`,
+                total: total
+            })
+        }).catch(error => {
+            console.error('Network error:', error);
+            throw new Error('Network error: Unable to connect to the server. Please check your connection and try again.');
+        });
+            const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+            const { error } = await stripe.redirectToCheckout({
+                sessionId: sessionId
+            });
+            
+            if (error) {
+                throw new Error(error.message);
+            }
+        } else if (sessionId) {
+            // Fallback: redirect to the session URL if Stripe is not available
+            const sessionUrl = `/checkout-session/${sessionId}`;
+            showNotification('Redirecting to secure payment...', 'success');
+            window.location.href = sessionUrl;
+        } else {
+            throw new Error('No session ID received');
+        }
         
-        // In production, you would:
-        // 1. Send order details to your server
-        // 2. Process payment with Stripe
-        // 3. Generate secure download link
-        // 4. Send confirmation email with download link
+    } catch (error) {
+        console.error('Payment processing error:', error);
+        showNotification('Payment setup failed. Please try again.', 'error');
         
-    }, 2000);
+        // Re-enable button
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.getElementById('button-text');
+        const spinner = document.getElementById('spinner');
+        
+        submitButton.disabled = false;
+        buttonText.textContent = 'Pay Now';
+        spinner.classList.add('hidden');
+    }
 }
 
 // Utility functions

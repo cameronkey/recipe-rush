@@ -16,7 +16,7 @@
     <header class="header">
         <nav class="nav">
             <div class="nav-brand">
-                <h1>RecipeRush</h1>
+                <a href="index.html" class="nav-brand-link" aria-label="RecipeRush home" aria-current="page">RecipeRush</a>
             </div>
             
             <!-- Mobile Burger Menu Button -->
@@ -270,24 +270,21 @@
 
                 <!-- Payment Section -->
                 <div class="form-section">
-                    <h3>Payment Information</h3>
-                    <div class="payment-fields">
-                        <div class="payment-field card-number">
-                            <label for="cardNumber">Card Number *</label>
-                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                    <h3>Secure Payment</h3>
+                    <div class="payment-info">
+                        <div class="secure-payment-message">
+                            <i class="fas fa-lock" aria-hidden="true"></i>
+                            <strong>Secure Payment Processing</strong>
                         </div>
-                        <div class="payment-row">
-                            <div class="payment-field expiry">
-                                <label for="cardExpiry">Expiry *</label>
-                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required>
-                            </div>
-                            <div class="payment-field cvc">
-                                <label for="cardCvc">CVC *</label>
-                                <input type="text" id="cardCvc" placeholder="123" maxlength="3" required>
-                            </div>
-                        </div>
+                        <p class="secure-payment-description">
+                            After you click "Pay Now", you'll be redirected to Stripe's secure checkout page where you can safely enter your payment details.
+                        </p>
+                        <ul class="payment-methods">
+                            <li class="payment-method">💳 Visa</li>
+                            <li class="payment-method">💳 Mastercard</li>
+                            <li class="payment-method">💳 American Express</li>
+                        </ul>
                     </div>
-                    <div id="card-errors" class="card-errors" role="alert"></div>
                 </div>
 
                 <button type="submit" id="submit-button" class="btn-primary">
@@ -300,6 +297,7 @@
 
 
 
+    <script src="https://js.stripe.com/v3/"></script>
     <script src="script.js"></script>
 </body>
 </html>

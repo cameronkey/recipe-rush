@@ -26,6 +26,9 @@
     --red-600: #dc2626;
     --orange-500: #f59e0b;
     
+    /* Focus Colors */
+    --focus-color: #4f46e5;
+    
     /* Typography */
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -118,10 +121,19 @@ body {
     font-family: var(--font-display);
     text-decoration: none;
     transition: all 0.2s ease;
+    display: inline-block;
+    line-height: 1.2;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
 }
 
 .nav-brand-link:hover {
     color: var(--primary-700);
+}
+
+.nav-brand-link:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
 }
 
 .nav-menu {
@@ -1099,50 +1111,80 @@ body {
     gap: var(--space-4);
 }
 
-.payment-fields {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-}
-
-.payment-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
-}
-
-.payment-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.payment-field label {
-    margin-bottom: var(--space-2);
-    font-weight: 600;
-    color: var(--gray-700);
-    font-size: 0.875rem;
-}
-
-.payment-field input {
-    padding: var(--space-3) var(--space-4);
-    border: 2px solid var(--gray-200);
+/* Payment Info */
+.payment-info {
+    background: var(--gray-50);
+    padding: var(--space-4);
     border-radius: var(--radius-lg);
-    font-size: 1rem;
-    transition: all 0.2s ease;
+    border: 1px solid var(--gray-200);
+}
+
+.secure-payment-message {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    font-size: 1.1rem;
+    color: var(--gray-800);
+}
+
+.secure-payment-message i {
+    color: var(--green-500);
+    margin-right: var(--space-2);
+}
+
+.secure-payment-description {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+    margin: var(--space-2) 0;
+}
+
+.payment-methods {
+    display: flex;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+}
+
+.payment-method {
     background: white;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    font-size: 0.9rem;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
-.payment-field input:focus {
-    outline: none;
+.payment-method:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-300);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.payment-method:focus-visible {
+    outline: 2px solid var(--primary-600);
+    outline-offset: 2px;
+}
+
+.payment-method[aria-checked="true"],
+.payment-method.is-selected {
+    background: var(--primary-50);
     border-color: var(--primary-600);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    color: var(--primary-900);
+    box-shadow: 0 0 0 3px rgba(var(--primary-600-rgb), 0.1);
 }
 
-.card-errors {
-    color: var(--red-600);
-    font-size: 0.875rem;
-    margin-top: var(--space-2);
-    min-height: 20px;
+.payment-method[aria-disabled="true"],
+.payment-method.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 #submit-button {
@@ -1172,6 +1214,37 @@ body {
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
+}
+
+/* New payment UI structure */
+.payment-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.payment-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.payment-field.card-number {
+    grid-column: 1 / -1;
+}
+
+.payment-field input {
+    padding: var(--space-3);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.payment-field input:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 3px rgba(var(--primary-600-rgb), 0.1);
 }
 
 .spinner {
@@ -1486,6 +1559,7 @@ body {
         grid-template-columns: 1fr;
     }
     
+    /* Legacy payment-row selector - still used in checkout forms for expiry/CVC layout */
     .payment-row {
         grid-template-columns: 1fr;
     }
@@ -1612,6 +1686,13 @@ body {
     gap: var(--space-4);
     justify-content: center;
     flex-wrap: wrap;
+}
+
+.success-actions--centered {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
 }
 
 .success-note,

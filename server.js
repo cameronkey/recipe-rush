@@ -1,13 +1,39 @@
+require('dotenv').config();
+
+// Security Note: Test endpoints (/test-email, /test-webhook, /test-download/:token) 
+// are automatically disabled in production unless ENABLE_TEST_ENDPOINTS is set to a truthy value.
+// Set NODE_ENV=production and optionally ENABLE_TEST_ENDPOINTS=true to control access.
+
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Production security middleware
+if (process.env.NODE_ENV === 'production') {
+    // Rate limiting for production
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100, // limit each IP to 100 requests per windowMs
+        message: 'Too many requests from this IP, please try again later.'
+    });
+    app.use(limiter);
+    
+    // Security headers
+    app.use((req, res, next) => {
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('X-XSS-Protection', '1; mode=block');
+        res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        next();
+    });
+}
 
 // Middleware
 app.use(cors({
@@ -16,7 +42,7 @@ app.use(cors({
         : true,
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('.')); // Serve static files from current directory
 
 // Store for download tokens (in production, use a database)
@@ -31,10 +57,23 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Test email configuration on startup (only in development)
+if (process.env.NODE_ENV !== 'production') {
+    transporter.verify(function(error, success) {
+        if (error) {
+            console.error('❌ Email configuration error:', error);
+        } else {
+            console.log('✅ Email configuration verified successfully');
+        }
+    });
+}
+
 // Generate secure download token
 function generateDownloadToken(customerEmail, orderId) {
     const token = crypto.randomBytes(32).toString('hex');
-    const expiry = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+    // Production: 7 days, Development: 30 days for testing
+    const expiryDays = process.env.NODE_ENV === 'production' ? 7 : 30;
+    const expiry = Date.now() + (expiryDays * 24 * 60 * 60 * 1000);
     
     downloadTokens.set(token, {
         email: customerEmail,
@@ -44,12 +83,25 @@ function generateDownloadToken(customerEmail, orderId) {
         maxDownloads: 5
     });
     
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('🔑 Generated download token:', {
+            token: token.substring(0, 10) + '...',
+            email: customerEmail,
+            expiry: new Date(expiry).toISOString()
+        });
+    }
+    
     return token;
 }
 
 // Send e-book delivery email
 async function sendEbookEmail(customerEmail, customerName, downloadToken, orderId) {
     const downloadUrl = `${process.env.BASE_URL}/download/${downloadToken}`;
+    
+    console.log('📧 Preparing e-book email...');
+    console.log('   From:', process.env.EMAIL_USER);
+    console.log('   To:', customerEmail);
+    console.log('   Download URL:', downloadUrl);
     
     const mailOptions = {
         from: process.env.EMAIL_USER,
@@ -73,11 +125,12 @@ async function sendEbookEmail(customerEmail, customerName, downloadToken, orderI
                     <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e9ecef; margin: 1.5rem 0;">
                         <h3 style="color: #2c3e50; margin-top: 0;">📖 What You'll Get:</h3>
                         <ul style="color: #555; line-height: 1.6;">
-                            <li>100+ exclusive recipes from world-class chefs</li>
-                            <li>Step-by-step cooking instructions</li>
-                            <li>Professional food photography</li>
-                            <li>Nutritional information and tips</li>
-                            <li>Chef techniques and substitutions</li>
+                            <li>80 Restaurant-Quality Recipes</li>
+                            <li>Vegan, Vegetarian, Pescatarian, Carnivore, Keto, High Protein Desserts</li>
+                            <li>Quick 30-Minute Meals</li>
+                            <li>Professional Chef Secrets</li>
+                            <li>Instant Digital Download</li>
+                            <li>Works on All Devices</li>
                         </ul>
                     </div>
                     
@@ -112,11 +165,20 @@ async function sendEbookEmail(customerEmail, customerName, downloadToken, orderI
     };
     
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`E-book delivery email sent to ${customerEmail}`);
+        console.log('📤 Attempting to send email via transporter...');
+        const result = await transporter.sendMail(mailOptions);
+        console.log('✅ Email sent successfully!');
+        console.log('   Message ID:', result.messageId);
+        console.log('   Response:', result.response);
+        console.log(`📧 E-book delivery email sent to ${customerEmail}`);
         return true;
     } catch (error) {
-        console.error('Error sending e-book email:', error);
+        console.error('❌ Error sending e-book email:');
+        console.error('   Error type:', error.constructor.name);
+        console.error('   Error message:', error.message);
+        console.error('   Error code:', error.code);
+        console.error('   Error response:', error.response);
+        console.error('   Full error:', error);
         return false;
     }
 }
@@ -124,7 +186,29 @@ async function sendEbookEmail(customerEmail, customerName, downloadToken, orderI
 // Create Stripe Checkout Session
 app.post('/create-checkout-session', async (req, res) => {
     try {
+        console.log('Creating checkout session...');
+        console.log('Request body:', req.body);
+        
         const { items, customerEmail, customerName, total } = req.body;
+        
+        // Validate required fields
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            console.error('Invalid items:', items);
+            return res.status(400).json({ error: 'Invalid items data' });
+        }
+        
+        if (!customerEmail || !customerName) {
+            console.error('Missing customer info:', { customerEmail, customerName });
+            return res.status(400).json({ error: 'Missing customer information' });
+        }
+        
+        // Check if Stripe is properly configured
+        if (!process.env.STRIPE_SECRET_KEY) {
+            console.error('Stripe secret key not found in environment');
+            return res.status(500).json({ error: 'Stripe configuration error' });
+        }
+        
+        console.log('Stripe key found:', process.env.STRIPE_SECRET_KEY.substring(0, 20) + '...');
         
         // Create Stripe Checkout Session
         const session = await stripe.checkout.sessions.create({
@@ -151,10 +235,20 @@ app.post('/create-checkout-session', async (req, res) => {
             },
         });
         
+        console.log('Checkout session created successfully:', session.id);
         res.json({ url: session.url });
     } catch (error) {
         console.error('Error creating checkout session:', error);
-        res.status(500).json({ error: 'Failed to create checkout session' });
+        console.error('Error details:', {
+            message: error.message,
+            type: error.type,
+            code: error.code,
+            stack: error.stack
+        });
+        res.status(500).json({ 
+            error: 'Failed to create checkout session',
+            details: error.message 
+        });
     }
 });
 
@@ -172,26 +266,48 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
+        console.log('🔄 Processing checkout.session.completed webhook...');
         
         // Extract customer information
         const customerEmail = session.customer_details.email;
         const customerName = session.customer_details.name;
         const orderId = session.id;
         
+        console.log('📧 Customer details:', { customerEmail, customerName, orderId });
+        
         // Generate download token
         const downloadToken = generateDownloadToken(customerEmail, orderId);
+        console.log('🔑 Download token generated:', downloadToken.substring(0, 10) + '...');
         
         // Send e-book delivery email
+        console.log('📤 Attempting to send e-book email...');
         const emailSent = await sendEbookEmail(customerEmail, customerName, downloadToken, orderId);
         
         if (emailSent) {
-            console.log(`Order ${orderId} completed successfully. E-book sent to ${customerEmail}`);
+            console.log(`✅ Order ${orderId} completed successfully. E-book sent to ${customerEmail}`);
         } else {
-            console.error(`Failed to send e-book for order ${orderId}`);
+            console.error(`❌ Failed to send e-book for order ${orderId}`);
         }
     }
     
     res.json({ received: true });
+});
+
+// Success page route
+app.get('/success', (req, res) => {
+    const sessionId = req.query.session_id;
+    console.log(`Payment successful! Session ID: ${sessionId}`);
+    
+    // Serve the success page
+    res.sendFile(path.join(__dirname, 'success.html'));
+});
+
+// Cancel page route
+app.get('/cancel', (req, res) => {
+    console.log('Payment cancelled by user');
+    
+    // Serve the cancel page
+    res.sendFile(path.join(__dirname, 'cancel.html'));
 });
 
 // Download endpoint
@@ -213,12 +329,16 @@ app.get('/download/:token', (req, res) => {
     }
     
     // Increment download count
-    tokenData.downloads++;
-    downloadTokens.set(token, tokenData);
-    
-    // Serve the e-book file
-    const ebookPath = path.join(__dirname, 'ebooks', 'complete-recipe-collection.pdf');
-    res.download(ebookPath, 'RecipeRush-Complete-Recipe-Collection.pdf', (err) => {
+    const ebookPath = path.join(__dirname, 'recipe-rush-lean-and-loaded.pdf');
+
+    // Check if file exists before attempting download
+    const fs = require('fs');
+    if (!fs.existsSync(ebookPath)) {
+        console.error('E-book file not found:', ebookPath);
+        return res.status(500).send('E-book file not found. Please contact support.');
+    }
+
+    res.download(ebookPath, 'RecipeRush-Lean-and-Loaded.pdf', (err) => {
         if (err) {
             console.error('Error downloading e-book:', err);
             res.status(500).send('Error downloading e-book.');
@@ -234,7 +354,200 @@ app.get('/health', (req, res) => {
         service: 'RecipeRush E-Book Delivery',
         environment: process.env.NODE_ENV || 'development',
         port: process.env.PORT || 3000,
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        email: {
+            configured: !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS,
+            user: process.env.EMAIL_USER ? 'Set' : 'Missing',
+            pass: process.env.EMAIL_PASS ? 'Set' : 'Missing'
+        }
+    });
+});
+
+// Test email endpoint (disabled in production by default)
+app.get('/test-email', async (req, res) => {
+    // Production security check
+    if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TEST_ENDPOINTS) {
+        console.log('🚫 Test email endpoint disabled in production');
+        return res.status(404).json({ 
+            error: 'Endpoint not found',
+            message: 'Test endpoints are disabled in production'
+        });
+    }
+    
+    try {
+        const testEmail = process.env.EMAIL_USER;
+        if (!testEmail) {
+            return res.status(400).json({ error: 'Email not configured' });
+        }
+        
+        console.log('🧪 Testing email configuration...');
+        console.log('   Email user:', process.env.EMAIL_USER);
+        console.log('   Email pass length:', process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 'Not set');
+        
+        // First, verify the transporter
+        console.log('🔍 Verifying transporter configuration...');
+        const verifyResult = await new Promise((resolve, reject) => {
+            transporter.verify((error, success) => {
+                if (error) {
+                    console.error('❌ Transporter verification failed:', error);
+                    reject(error);
+                } else {
+                    console.log('✅ Transporter verification successful');
+                    resolve(success);
+                }
+            });
+        });
+        
+        console.log('📧 Transporter verified, sending test email...');
+        
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: testEmail,
+            subject: '🧪 RecipeRush Email Test - Simple',
+            text: `Email Test Successful!\n\nIf you received this email, your Gmail configuration is working correctly.\n\nTime: ${new Date().toISOString()}\n\nThis is a simple text email to test basic functionality.`,
+            html: `
+                <h2>Email Test Successful!</h2>
+                <p>If you received this email, your Gmail configuration is working correctly.</p>
+                <p><strong>Time:</strong> ${new Date().toISOString()}</p>
+                <p>This is a simple HTML email to test basic functionality.</p>
+            `
+        };
+        
+        console.log('📤 Sending email with options:', {
+            from: mailOptions.from,
+            to: mailOptions.to,
+            subject: mailOptions.subject
+        });
+        
+        const result = await transporter.sendMail(mailOptions);
+        console.log('✅ Test email sent successfully');
+        console.log('   Message ID:', result.messageId);
+        console.log('   Response:', result.response);
+        
+        res.json({ 
+            success: true, 
+            message: 'Test email sent successfully',
+            to: testEmail,
+            messageId: result.messageId,
+            response: result.response
+        });
+        
+    } catch (error) {
+        console.error('❌ Test email failed:', error);
+        res.status(500).json({ 
+            error: 'Test email failed', 
+            details: error.message,
+            code: error.code
+        });
+    }
+});
+
+// Test webhook simulation endpoint (disabled in production by default)
+app.get('/test-webhook', async (req, res) => {
+    // Production security check
+    if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TEST_ENDPOINTS) {
+        console.log('🚫 Test webhook endpoint disabled in production');
+        return res.status(404).json({ 
+            error: 'Endpoint not found',
+            message: 'Test endpoints are disabled in production'
+        });
+    }
+    
+    try {
+        console.log('🧪 Testing webhook simulation...');
+        
+        // Simulate a successful checkout session
+        const mockSession = {
+            customer_details: {
+                email: process.env.EMAIL_USER,
+                name: 'Test User'
+            },
+            id: 'cs_test_' + Date.now()
+        };
+        
+        console.log('📧 Customer details:', { 
+            customerEmail: mockSession.customer_details.email, 
+            customerName: mockSession.customer_details.name, 
+            orderId: mockSession.id 
+        });
+        
+        // Generate download token with longer expiry (30 days for testing)
+        const downloadToken = generateDownloadToken(mockSession.customer_details.email, mockSession.id);
+        console.log('🔑 Download token generated:', downloadToken.substring(0, 10) + '...');
+        
+        // Send e-book delivery email
+        console.log('📤 Attempting to send e-book email...');
+        const emailSent = await sendEbookEmail(
+            mockSession.customer_details.email, 
+            mockSession.customer_details.name, 
+            downloadToken, 
+            mockSession.id
+        );
+        
+        if (emailSent) {
+            console.log(`✅ Test webhook processed successfully. E-book sent to ${mockSession.customer_details.email}`);
+            res.json({ 
+                success: true, 
+                message: 'Test webhook processed successfully',
+                orderId: mockSession.id,
+                downloadToken: downloadToken,
+                emailSent: true,
+                downloadUrl: `${process.env.BASE_URL}/download/${downloadToken}`
+            });
+        } else {
+            console.error(`❌ Failed to send e-book for test order ${mockSession.id}`);
+            res.status(500).json({ 
+                error: 'Failed to send e-book email',
+                orderId: mockSession.id
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Test webhook failed:', error);
+        res.status(500).json({ 
+            error: 'Test webhook failed', 
+            details: error.message
+        });
+    }
+});
+
+// Test download endpoint (for debugging, disabled in production by default)
+app.get('/test-download/:token', (req, res) => {
+    // Production security check
+    if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TEST_ENDPOINTS) {
+        console.log('🚫 Test download endpoint disabled in production');
+        return res.status(404).json({ 
+            error: 'Endpoint not found',
+            message: 'Test endpoints are disabled in production'
+        });
+    }
+    
+    const token = req.params.token;
+    console.log('🧪 Testing download with token:', token);
+    
+    const tokenData = downloadTokens.get(token);
+    console.log('🔍 Token data found:', !!tokenData);
+    
+    if (tokenData) {
+        console.log('📊 Token details:', {
+            email: tokenData.email,
+            orderId: tokenData.orderId,
+            expiry: new Date(tokenData.expiry).toISOString(),
+            downloads: tokenData.downloads,
+            maxDownloads: tokenData.maxDownloads
+        });
+    }
+    
+    res.json({
+        token: token,
+        tokenExists: !!tokenData,
+        tokenData: tokenData ? {
+            email: tokenData.email,
+            orderId: tokenData.orderId,
+            expiry: new Date(tokenData.expiry).toISOString(),
+            downloads: tokenData.downloads,
+            maxDownloads: tokenData.maxDownloads
+        } : null
     });
 });
 
@@ -247,6 +560,8 @@ app.get('/', (req, res) => {
         endpoints: {
             health: '/health',
             checkout: '/create-checkout-session',
+            success: '/success',
+            cancel: '/cancel',
             webhook: '/webhook/stripe',
             download: '/download/:token'
         }
@@ -255,12 +570,52 @@ app.get('/', (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 RecipeRush server running on port ${PORT}`);
-    console.log(`📚 E-book delivery system ready`);
-    console.log(`💳 Stripe webhooks enabled`);
-    console.log(`📧 Email delivery configured`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Server URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
+    if (process.env.NODE_ENV === 'production') {
+        console.log(`🚀 RecipeRush production server running on port ${PORT}`);
+        console.log(`📚 E-book delivery system ready`);
+        console.log(`💳 Stripe webhooks enabled`);
+        console.log(`📧 Email delivery configured`);
+        console.log(`🔒 Production security enabled`);
+        console.log(`🌐 Base URL: ${process.env.BASE_URL}`);
+    } else {
+        console.log(`🚀 RecipeRush server running on port ${PORT}`);
+        console.log(`📚 E-book delivery system ready`);
+        console.log(`💳 Stripe webhooks enabled`);
+        console.log(`📧 Email delivery configured`);
+        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`🔗 Server URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
+        
+        // Verify environment variables
+        console.log(`🔑 Stripe Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Loaded' : '❌ Missing'}`);
+        console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Not set'}`);
+        console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ Configured' : '❌ Missing'}`);
+    }
 });
+
+// Production error handling
+if (process.env.NODE_ENV === 'production') {
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+        console.error('Uncaught Exception:', error);
+        process.exit(1);
+    });
+    
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+        process.exit(1);
+    });
+    
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM received, shutting down gracefully');
+        process.exit(0);
+    });
+    
+    process.on('SIGINT', () => {
+        console.log('SIGINT received, shutting down gracefully');
+        process.exit(0);
+    });
+}
 
 module.exports = app;

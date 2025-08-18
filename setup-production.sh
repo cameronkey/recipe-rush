@@ -1,0 +1,57 @@
+#!/bin/bash
+
+echo "🚀 RecipeRush Production Environment Setup"
+echo "=========================================="
+echo ""
+
+# Generate security secrets
+echo "🔐 Generating security secrets..."
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+
+echo "✅ Generated JWT_SECRET: ${JWT_SECRET:0:20}..."
+echo "✅ Generated SESSION_SECRET: ${SESSION_SECRET:0:20}..."
+echo ""
+
+echo "📋 Production Environment Variables to set in Render:"
+echo "====================================================="
+echo ""
+echo "NODE_ENV=production"
+echo "PORT=10000"
+echo "BASE_URL=https://reciperush-backend.onrender.com"
+echo ""
+echo "# Stripe Configuration (Get from your Stripe dashboard)"
+echo "STRIPE_SECRET_KEY=sk_live_your_actual_live_stripe_key_here"
+echo "STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_live_publishable_key_here"
+echo "STRIPE_WEBHOOK_SECRET=whsec_your_actual_webhook_secret_here"
+echo ""
+echo "# Email Configuration"
+echo "EMAIL_USER=reciperush01@gmail.com"
+echo "EMAIL_PASS=your_actual_gmail_app_password_here"
+echo ""
+echo "# Security (Generated above)"
+echo "JWT_SECRET=${JWT_SECRET}"
+echo "SESSION_SECRET=${SESSION_SECRET}"
+echo ""
+echo "# Production Settings"
+echo "LOG_LEVEL=error"
+echo "ENABLE_DEBUG=false"
+echo "MAX_FILE_SIZE=10485760"
+echo "RATE_LIMIT_WINDOW_MS=900000"
+echo "RATE_LIMIT_MAX_REQUESTS=100"
+echo ""
+
+echo "⚠️  IMPORTANT:"
+echo "1. Copy these values to your Render dashboard environment variables"
+echo "2. Replace Stripe keys with your actual live keys from Stripe dashboard"
+echo "3. Replace EMAIL_PASS with your actual Gmail App Password"
+echo "4. Update frontend Stripe keys in script.js, contact.js, and catalog.js"
+echo "5. Test thoroughly before going live!"
+echo ""
+echo "🔑 Frontend Stripe Keys to Update:"
+echo "   - script.js: STRIPE_PUBLISHABLE_KEY"
+echo "   - contact.js: Stripe('pk_live_your_key')"
+echo "   - catalog.js: Stripe('pk_live_your_key')"
+echo ""
+
+echo "📚 See PRODUCTION_DEPLOYMENT.md for complete deployment guide"
