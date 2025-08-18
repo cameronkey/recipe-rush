@@ -19,10 +19,6 @@ describe('RecipeRush Server', () => {
     });
   });
 
-  afterAll(() => {
-    // Cleanup if needed
-  });
-
   describe('Health Check', () => {
     test('GET /test should return 200 and test message', async () => {
       const response = await request(app)
