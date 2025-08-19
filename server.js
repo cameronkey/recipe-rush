@@ -12,19 +12,37 @@ const cors = require('cors');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 
+// Initialize Sentry if DSN is provided
+let Sentry;
+if (process.env.SENTRY_DSN) {
+    try {
+        Sentry = require('@sentry/node');
+        Sentry.init({
+            dsn: process.env.SENTRY_DSN,
+            environment: process.env.NODE_ENV || 'development'
+        });
+        console.log('✅ Sentry initialized successfully');
+    } catch (error) {
+        console.error('❌ Failed to initialize Sentry:', error.message);
+    }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Production security middleware
 if (process.env.NODE_ENV === 'production') {
-    // Rate limiting for production
+    // Rate limiting for production - configurable via environment variables
+    const rateLimitWindowMinutes = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES) || 15;
+    const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX) || 100;
+
     const limiter = rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
+        windowMs: rateLimitWindowMinutes * 60 * 1000, // Convert minutes to milliseconds
+        max: rateLimitMax, // limit each IP to max requests per windowMs
         message: 'Too many requests from this IP, please try again later.'
     });
     app.use(limiter);
-    
+
     // Security headers
     app.use((req, res, next) => {
         res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -35,6 +53,24 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
+// CSRF token rate limiter - prevents token spamming
+const csrfLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute window
+    max: 10, // limit each IP to 10 requests per minute
+    message: {
+        error: 'Too many CSRF token requests from this IP. Please wait before requesting another token.',
+        retryAfter: 60
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    handler: (req, res) => {
+        res.status(429).json({
+            error: 'Too many CSRF token requests from this IP. Please wait before requesting another token.',
+            retryAfter: 60
+        });
+    }
+});
+
 // Middleware
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
@@ -43,10 +79,12 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('.')); // Serve static files from current directory
 
 // Store for download tokens (in production, use a database)
 const downloadTokens = new Map();
+
+// CSRF token store (in production, use a database or session store)
+const csrfTokens = new Map();
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -57,8 +95,8 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Test email configuration on startup (only in development)
-if (process.env.NODE_ENV !== 'production') {
+// Test email configuration on startup (only in development, not in tests)
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     transporter.verify(function(error, success) {
         if (error) {
             console.error('❌ Email configuration error:', error);
@@ -74,7 +112,7 @@ function generateDownloadToken(customerEmail, orderId) {
     // Production: 7 days, Development: 30 days for testing
     const expiryDays = process.env.NODE_ENV === 'production' ? 7 : 30;
     const expiry = Date.now() + (expiryDays * 24 * 60 * 60 * 1000);
-    
+
     downloadTokens.set(token, {
         email: customerEmail,
         orderId: orderId,
@@ -82,7 +120,7 @@ function generateDownloadToken(customerEmail, orderId) {
         downloads: 0,
         maxDownloads: 5
     });
-    
+
     if (process.env.NODE_ENV !== 'production') {
         console.log('🔑 Generated download token:', {
             token: token.substring(0, 10) + '...',
@@ -90,19 +128,73 @@ function generateDownloadToken(customerEmail, orderId) {
             expiry: new Date(expiry).toISOString()
         });
     }
-    
+
     return token;
+}
+
+// Generate CSRF token
+function generateCSRFToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = Date.now() + (15 * 60 * 1000); // 15 minutes expiry
+
+    csrfTokens.set(token, {
+        expiry: expiry,
+        used: false
+    });
+
+    return token;
+}
+
+// Validate CSRF token
+function validateCSRFToken(token) {
+    const tokenData = csrfTokens.get(token);
+
+    if (!tokenData) {
+        return false;
+    }
+
+    // Check if token has expired
+    if (Date.now() > tokenData.expiry) {
+        csrfTokens.delete(token);
+        return false;
+    }
+
+    // Check if token has already been used
+    if (tokenData.used) {
+        csrfTokens.delete(token);
+        return false;
+    }
+
+    // Mark token as used and remove it
+    csrfTokens.delete(token);
+    return true;
+}
+
+// Clean up expired CSRF tokens periodically
+function cleanupExpiredCSRFTokens() {
+    const now = Date.now();
+    for (const [token, tokenData] of csrfTokens.entries()) {
+        if (now > tokenData.expiry) {
+            csrfTokens.delete(token);
+        }
+    }
+}
+
+// Run cleanup every 5 minutes (not in test mode)
+let cleanupInterval;
+if (process.env.NODE_ENV !== 'test') {
+    cleanupInterval = setInterval(cleanupExpiredCSRFTokens, 5 * 60 * 1000);
 }
 
 // Send e-book delivery email
 async function sendEbookEmail(customerEmail, customerName, downloadToken, orderId) {
     const downloadUrl = `${process.env.BASE_URL}/download/${downloadToken}`;
-    
+
     console.log('📧 Preparing e-book email...');
     console.log('   From:', process.env.EMAIL_USER);
     console.log('   To:', customerEmail);
     console.log('   Download URL:', downloadUrl);
-    
+
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: customerEmail,
@@ -163,7 +255,7 @@ async function sendEbookEmail(customerEmail, customerName, downloadToken, orderI
             </div>
         `
     };
-    
+
     try {
         console.log('📤 Attempting to send email via transporter...');
         const result = await transporter.sendMail(mailOptions);
@@ -183,33 +275,46 @@ async function sendEbookEmail(customerEmail, customerName, downloadToken, orderI
     }
 }
 
+// CSRF token endpoint
+app.get('/csrf-token', csrfLimiter, (req, res) => {
+    const token = generateCSRFToken();
+    res.json({ token });
+});
+
 // Create Stripe Checkout Session
 app.post('/create-checkout-session', async (req, res) => {
     try {
         console.log('Creating checkout session...');
         console.log('Request body:', req.body);
-        
+
+        // Validate CSRF token
+        const csrfToken = req.headers['x-csrf-token'];
+        if (!csrfToken || !validateCSRFToken(csrfToken)) {
+            console.error('Invalid or missing CSRF token');
+            return res.status(403).json({ error: 'Invalid CSRF token' });
+        }
+
         const { items, customerEmail, customerName, total } = req.body;
-        
+
         // Validate required fields
         if (!items || !Array.isArray(items) || items.length === 0) {
             console.error('Invalid items:', items);
             return res.status(400).json({ error: 'Invalid items data' });
         }
-        
+
         if (!customerEmail || !customerName) {
             console.error('Missing customer info:', { customerEmail, customerName });
             return res.status(400).json({ error: 'Missing customer information' });
         }
-        
+
         // Check if Stripe is properly configured
         if (!process.env.STRIPE_SECRET_KEY) {
             console.error('Stripe secret key not found in environment');
             return res.status(500).json({ error: 'Stripe configuration error' });
         }
-        
+
         console.log('Stripe key found:', process.env.STRIPE_SECRET_KEY.substring(0, 20) + '...');
-        
+
         // Create Stripe Checkout Session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -234,7 +339,7 @@ app.post('/create-checkout-session', async (req, res) => {
                 customerEmail: customerEmail,
             },
         });
-        
+
         console.log('Checkout session created successfully:', session.id);
         res.json({ url: session.url });
     } catch (error) {
@@ -256,40 +361,40 @@ app.post('/create-checkout-session', async (req, res) => {
 app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
-    
+
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-    
+
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         console.log('🔄 Processing checkout.session.completed webhook...');
-        
+
         // Extract customer information
         const customerEmail = session.customer_details.email;
         const customerName = session.customer_details.name;
         const orderId = session.id;
-        
+
         console.log('📧 Customer details:', { customerEmail, customerName, orderId });
-        
+
         // Generate download token
         const downloadToken = generateDownloadToken(customerEmail, orderId);
         console.log('🔑 Download token generated:', downloadToken.substring(0, 10) + '...');
-        
+
         // Send e-book delivery email
         console.log('📤 Attempting to send e-book email...');
         const emailSent = await sendEbookEmail(customerEmail, customerName, downloadToken, orderId);
-        
+
         if (emailSent) {
             console.log(`✅ Order ${orderId} completed successfully. E-book sent to ${customerEmail}`);
         } else {
             console.error(`❌ Failed to send e-book for order ${orderId}`);
         }
     }
-    
+
     res.json({ received: true });
 });
 
@@ -297,7 +402,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 app.get('/success', (req, res) => {
     const sessionId = req.query.session_id;
     console.log(`Payment successful! Session ID: ${sessionId}`);
-    
+
     // Serve the success page
     res.sendFile(path.join(__dirname, 'success.html'));
 });
@@ -305,7 +410,7 @@ app.get('/success', (req, res) => {
 // Cancel page route
 app.get('/cancel', (req, res) => {
     console.log('Payment cancelled by user');
-    
+
     // Serve the cancel page
     res.sendFile(path.join(__dirname, 'cancel.html'));
 });
@@ -314,35 +419,34 @@ app.get('/cancel', (req, res) => {
 app.get('/download/:token', (req, res) => {
     const token = req.params.token;
     const tokenData = downloadTokens.get(token);
-    
+
     if (!tokenData) {
-        return res.status(404).send('Download link not found or expired.');
+        return res.status(404).send('Invalid download token.');
     }
-    
+
+    // Enforce token expiry
     if (Date.now() > tokenData.expiry) {
         downloadTokens.delete(token);
         return res.status(410).send('Download link has expired.');
     }
-    
+
     if (tokenData.downloads >= tokenData.maxDownloads) {
         return res.status(429).send('Maximum download limit reached.');
     }
     
-    // Increment download count
     const ebookPath = path.join(__dirname, 'recipe-rush-lean-and-loaded.pdf');
-
-    // Check if file exists before attempting download
-    const fs = require('fs');
-    if (!fs.existsSync(ebookPath)) {
-        console.error('E-book file not found:', ebookPath);
-        return res.status(500).send('E-book file not found. Please contact support.');
-    }
-
     res.download(ebookPath, 'RecipeRush-Lean-and-Loaded.pdf', (err) => {
         if (err) {
-            console.error('Error downloading e-book:', err);
-            res.status(500).send('Error downloading e-book.');
+            console.error('Download failed:', err);
+            return res.status(500).send('Failed to download the e-book.');
         }
+        // Increment on successful transfer
+        tokenData.downloads++;
+        // Optional: cleanup if max reached
+        if (tokenData.downloads >= tokenData.maxDownloads) {
+            downloadTokens.delete(token);
+        }
+        // No further response calls here; response already sent
     });
 });
 
@@ -363,6 +467,43 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Public configuration endpoint for frontend
+// SECURITY: Only serves public, non-sensitive configuration
+// Never exposes secret keys client-side
+app.get('/api/config', (req, res) => {
+    // Only return public, non-sensitive configuration
+    const config = {
+        stripe: {
+            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+        },
+        emailjs: {
+            publicKey: process.env.EMAILJS_PUBLIC_KEY
+        },
+        environment: process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString()
+    };
+
+    // Validate that required config is present
+    if (!config.stripe.publishableKey) {
+        console.error('❌ STRIPE_PUBLISHABLE_KEY not configured');
+        return res.status(500).json({
+            error: 'Configuration incomplete',
+            message: 'Stripe publishable key not configured'
+        });
+    }
+
+    if (!config.emailjs.publicKey) {
+        console.error('❌ EMAILJS_PUBLIC_KEY not configured');
+        return res.status(500).json({
+            error: 'Configuration incomplete',
+            message: 'EmailJS public key not configured'
+        });
+    }
+
+    console.log('✅ Public configuration served successfully');
+    res.json(config);
+});
+
 // Test email endpoint (disabled in production by default)
 app.get('/test-email', async (req, res) => {
     // Production security check
@@ -373,17 +514,17 @@ app.get('/test-email', async (req, res) => {
             message: 'Test endpoints are disabled in production'
         });
     }
-    
+
     try {
         const testEmail = process.env.EMAIL_USER;
         if (!testEmail) {
             return res.status(400).json({ error: 'Email not configured' });
         }
-        
+
         console.log('🧪 Testing email configuration...');
         console.log('   Email user:', process.env.EMAIL_USER);
         console.log('   Email pass length:', process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 'Not set');
-        
+
         // First, verify the transporter
         console.log('🔍 Verifying transporter configuration...');
         const verifyResult = await new Promise((resolve, reject) => {
@@ -397,9 +538,9 @@ app.get('/test-email', async (req, res) => {
                 }
             });
         });
-        
+
         console.log('📧 Transporter verified, sending test email...');
-        
+
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: testEmail,
@@ -412,18 +553,18 @@ app.get('/test-email', async (req, res) => {
                 <p>This is a simple HTML email to test basic functionality.</p>
             `
         };
-        
+
         console.log('📤 Sending email with options:', {
             from: mailOptions.from,
             to: mailOptions.to,
             subject: mailOptions.subject
         });
-        
+
         const result = await transporter.sendMail(mailOptions);
         console.log('✅ Test email sent successfully');
         console.log('   Message ID:', result.messageId);
         console.log('   Response:', result.response);
-        
+
         res.json({ 
             success: true, 
             message: 'Test email sent successfully',
@@ -431,7 +572,7 @@ app.get('/test-email', async (req, res) => {
             messageId: result.messageId,
             response: result.response
         });
-        
+
     } catch (error) {
         console.error('❌ Test email failed:', error);
         res.status(500).json({ 
@@ -452,10 +593,10 @@ app.get('/test-webhook', async (req, res) => {
             message: 'Test endpoints are disabled in production'
         });
     }
-    
+
     try {
         console.log('🧪 Testing webhook simulation...');
-        
+
         // Simulate a successful checkout session
         const mockSession = {
             customer_details: {
@@ -464,17 +605,17 @@ app.get('/test-webhook', async (req, res) => {
             },
             id: 'cs_test_' + Date.now()
         };
-        
+
         console.log('📧 Customer details:', { 
             customerEmail: mockSession.customer_details.email, 
             customerName: mockSession.customer_details.name, 
             orderId: mockSession.id 
         });
-        
+
         // Generate download token with longer expiry (30 days for testing)
         const downloadToken = generateDownloadToken(mockSession.customer_details.email, mockSession.id);
         console.log('🔑 Download token generated:', downloadToken.substring(0, 10) + '...');
-        
+
         // Send e-book delivery email
         console.log('📤 Attempting to send e-book email...');
         const emailSent = await sendEbookEmail(
@@ -483,7 +624,7 @@ app.get('/test-webhook', async (req, res) => {
             downloadToken, 
             mockSession.id
         );
-        
+
         if (emailSent) {
             console.log(`✅ Test webhook processed successfully. E-book sent to ${mockSession.customer_details.email}`);
             res.json({ 
@@ -501,7 +642,7 @@ app.get('/test-webhook', async (req, res) => {
                 orderId: mockSession.id
             });
         }
-        
+
     } catch (error) {
         console.error('❌ Test webhook failed:', error);
         res.status(500).json({ 
@@ -521,13 +662,13 @@ app.get('/test-download/:token', (req, res) => {
             message: 'Test endpoints are disabled in production'
         });
     }
-    
+
     const token = req.params.token;
     console.log('🧪 Testing download with token:', token);
-    
+
     const tokenData = downloadTokens.get(token);
     console.log('🔍 Token data found:', !!tokenData);
-    
+
     if (tokenData) {
         console.log('📊 Token details:', {
             email: tokenData.email,
@@ -537,7 +678,7 @@ app.get('/test-download/:token', (req, res) => {
             maxDownloads: tokenData.maxDownloads
         });
     }
-    
+
     res.json({
         token: token,
         tokenExists: !!tokenData,
@@ -568,54 +709,150 @@ app.get('/', (req, res) => {
     });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-    if (process.env.NODE_ENV === 'production') {
-        console.log(`🚀 RecipeRush production server running on port ${PORT}`);
-        console.log(`📚 E-book delivery system ready`);
-        console.log(`💳 Stripe webhooks enabled`);
-        console.log(`📧 Email delivery configured`);
-        console.log(`🔒 Production security enabled`);
-        console.log(`🌐 Base URL: ${process.env.BASE_URL}`);
-    } else {
-        console.log(`🚀 RecipeRush server running on port ${PORT}`);
-        console.log(`📚 E-book delivery system ready`);
-        console.log(`💳 Stripe webhooks enabled`);
-        console.log(`📧 Email delivery configured`);
-        console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`🔗 Server URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
-        
-        // Verify environment variables
-        console.log(`🔑 Stripe Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Loaded' : '❌ Missing'}`);
-        console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Not set'}`);
-        console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ Configured' : '❌ Missing'}`);
-    }
-});
+// Serve static files after API routes
+app.use(express.static('.'));
 
-// Production error handling
+// Start server only if not in test mode
+let server;
+if (process.env.NODE_ENV !== 'test') {
+    server = app.listen(PORT, '0.0.0.0', () => {
+        if (process.env.NODE_ENV === 'production') {
+            console.log(`🚀 RecipeRush production server running on port ${PORT}`);
+            console.log(`📚 E-book delivery system ready`);
+            console.log(`💳 Stripe webhooks enabled`);
+            console.log(`📧 Email delivery configured`);
+            console.log(`🔒 Production security enabled`);
+            console.log(`🌐 Base URL: ${process.env.BASE_URL}`);
+        } else {
+            console.log(`🚀 RecipeRush server running on port ${PORT}`);
+            console.log(`📚 E-book delivery system ready`);
+            console.log(`💳 Stripe webhooks enabled`);
+            console.log(`📧 Email delivery configured`);
+            console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`🔗 Server URL: ${process.env.BASE_URL || `http://localhost:${PORT}`}`);
+
+            // Verify environment variables
+            console.log(`🔑 Stripe Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Loaded' : '❌ Missing'}`);
+            console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Not set'}`);
+            console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ Configured' : '❌ Missing'}`);
+        }
+    });
+}
+
+// Graceful shutdown function
+function gracefulShutdown(signal) {
+    console.log(`\n🔄 ${signal} received, starting graceful shutdown...`);
+
+    // Only close server if it exists (not in test mode)
+    if (server) {
+        server.close((err) => {
+            if (err) {
+                console.error('❌ Error during server shutdown:', err);
+                process.exit(1);
+            }
+
+            console.log('✅ Server closed successfully');
+
+            // Close other resources
+            try {
+                // Clear cleanup interval
+                if (cleanupInterval) {
+                    clearInterval(cleanupInterval);
+                    console.log('✅ Cleanup interval cleared');
+                }
+
+                // Close email transporter
+                if (transporter) {
+                    transporter.close();
+                    console.log('✅ Email transporter closed');
+                }
+
+                // Close Stripe connections (if any)
+                // Note: Stripe client doesn't have explicit close method, but we can clean up any pending requests
+
+                // Flush Sentry events if available
+                if (Sentry) {
+                    Sentry.flush(2000)
+                        .then(() => {
+                            console.log('✅ Sentry events flushed');
+                            console.log('✅ Graceful shutdown completed');
+                            process.exit(0);
+                        })
+                        .catch((flushError) => {
+                            console.error('❌ Failed to flush Sentry events:', flushError);
+                            console.log('✅ Graceful shutdown completed (Sentry flush failed)');
+                            process.exit(0);
+                        });
+                } else {
+                    console.log('✅ Graceful shutdown completed');
+                    process.exit(0);
+                }
+            } catch (error) {
+                console.error('❌ Error during resource cleanup:', error);
+                process.exit(1);
+            }
+        });
+    }
+
+    // Force exit after timeout if shutdown hangs
+    setTimeout(() => {
+        console.error('⏰ Shutdown timeout reached, forcing exit');
+        process.exit(1);
+    }, 10000); // 10 second timeout
+}
 if (process.env.NODE_ENV === 'production') {
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
         console.error('Uncaught Exception:', error);
-        process.exit(1);
+        // Send alert to monitoring service
+        if (Sentry) {
+            Sentry.captureException(error);
+            // Flush Sentry events before exiting
+            Sentry.flush(2000)
+                .then(() => {
+                    console.log('Sentry events flushed successfully');
+                    process.exit(1);
+                })
+                .catch((flushError) => {
+                    console.error('Failed to flush Sentry events:', flushError);
+                    process.exit(1);
+                });
+        } else {
+            // Allow time for logs to flush if Sentry not available
+            setTimeout(() => {
+                process.exit(1);
+            }, 1000);
+        }
     });
-    
+
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
         console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-        process.exit(1);
+        // Send alert to monitoring service
+        if (Sentry) {
+            Sentry.captureException(reason);
+            // Flush Sentry events before exiting
+            Sentry.flush(2000)
+                .then(() => {
+                    console.log('Sentry events flushed successfully');
+                    process.exit(1);
+                })
+                .catch((flushError) => {
+                    console.error('Failed to flush Sentry events:', flushError);
+                    process.exit(1);
+                });
+        } else {
+            process.exit(1);
+        }
     });
-    
+
     // Graceful shutdown
-    process.on('SIGTERM', () => {
-        console.log('SIGTERM received, shutting down gracefully');
-        process.exit(0);
-    });
-    
-    process.on('SIGINT', () => {
-        console.log('SIGINT received, shutting down gracefully');
-        process.exit(0);
-    });
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+} else {
+    // Handle graceful shutdown in non-production environments
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 module.exports = app;

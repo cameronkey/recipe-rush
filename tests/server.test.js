@@ -1,60 +1,70 @@
 const request = require('supertest');
-const express = require('express');
-
-// Import the app instance (we'll need to export it from server.js)
-// For now, we'll create a basic test structure
+const app = require('../server');
 
 describe('RecipeRush Server', () => {
-  let app;
-
-  beforeAll(() => {
-    // In a real setup, you'd import your app instance
-    // For now, we'll create a basic Express app for testing
-    app = express();
-    app.use(express.json());
-
-    // Add a test route
-    app.get('/test', (req, res) => {
-      res.status(200).json({ message: 'Test endpoint working' });
-    });
-  });
-
-  describe('Health Check', () => {
-    test('GET /test should return 200 and test message', async () => {
+  describe('Health Check Endpoint', () => {
+    test('GET /health should return 200 and health status', async () => {
       const response = await request(app)
-        .get('/test')
+        .get('/health')
         .expect(200);
 
-      expect(response.body).toEqual({ message: 'Test endpoint working' });
+      expect(response.body).toHaveProperty('status', 'healthy');
+      expect(response.body).toHaveProperty('service', 'RecipeRush E-Book Delivery');
+      expect(response.body).toHaveProperty('timestamp');
+      expect(response.body).toHaveProperty('environment');
+      expect(response.body).toHaveProperty('port');
+      expect(response.body).toHaveProperty('uptime');
+      expect(response.body).toHaveProperty('email');
     });
   });
 
-  describe('Utility Functions', () => {
-    test('should create mock request objects', () => {
-      const mockReq = global.testUtils.createMockRequest({
-        body: { test: 'data' },
-        params: { id: '123' }
-      });
+  describe('Root Endpoint', () => {
+    test('GET / should return 200 and API information', async () => {
+      const response = await request(app)
+        .get('/')
+        .expect(200);
 
-      expect(mockReq.body).toEqual({ test: 'data' });
-      expect(mockReq.params).toEqual({ id: '123' });
-      expect(mockReq.query).toEqual({});
+      expect(response.body).toHaveProperty('message', 'RecipeRush API is running');
+      expect(response.body).toHaveProperty('status', 'operational');
+      expect(response.body).toHaveProperty('timestamp');
+      expect(response.body).toHaveProperty('endpoints');
+      expect(response.body.endpoints).toHaveProperty('health');
+      expect(response.body.endpoints).toHaveProperty('checkout');
+      expect(response.body.endpoints).toHaveProperty('success');
+      expect(response.body.endpoints).toHaveProperty('cancel');
+      expect(response.body.endpoints).toHaveProperty('webhook');
+      expect(response.body.endpoints).toHaveProperty('download');
+    });
+  });
+
+  describe('Public Configuration Endpoint', () => {
+    test('GET /api/config should return 500 when Stripe key is not configured', async () => {
+      const response = await request(app)
+        .get('/api/config')
+        .expect(500);
+
+      expect(response.body).toHaveProperty('error', 'Configuration incomplete');
+      expect(response.body).toHaveProperty('message', 'Stripe publishable key not configured');
     });
 
-    test('should create mock response objects', () => {
-      const mockRes = global.testUtils.createMockResponse();
+    test('GET /api/config should return 500 when EmailJS key is not configured', async () => {
+      // Mock Stripe key to test EmailJS validation
+      const originalStripeKey = process.env.STRIPE_PUBLISHABLE_KEY;
+      process.env.STRIPE_PUBLISHABLE_KEY = 'test_stripe_key';
 
-      expect(typeof mockRes.status).toBe('function');
-      expect(typeof mockRes.json).toBe('function');
-      expect(typeof mockRes.send).toBe('function');
-    });
+      const response = await request(app)
+        .get('/api/config')
+        .expect(500);
 
-    test('should create mock next function', () => {
-      const mockNext = global.testUtils.createMockNext();
+      expect(response.body).toHaveProperty('error', 'Configuration incomplete');
+      expect(response.body).toHaveProperty('message', 'EmailJS public key not configured');
 
-      expect(typeof mockNext).toBe('function');
-      expect(mockNext).toBeDefined();
-      expect(mockNext).toBeTruthy();
+      // Restore original environment
+      if (originalStripeKey) {
+        process.env.STRIPE_PUBLISHABLE_KEY = originalStripeKey;
+      } else {
+        delete process.env.STRIPE_PUBLISHABLE_KEY;
+      }
     });
   });
 });

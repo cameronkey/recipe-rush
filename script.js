@@ -1,61 +1,66 @@
 // Global variables
 let cart = [];
+// Expose only necessary cart operations, not the cart itself
+window.cartOperations = {
+    getCart: () => [...cart], // Return a copy to prevent direct manipulation
+    getCartLength: () => cart.length,
+    getCartTotal: () =>
+        cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+};
 
-// Stripe Configuration
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RuwBlFSn63qgmcHtd7LdeT7SuT23AzWE0BPDucH5hVpbrVnsnAEoFU6odPchzz7UPgdVFRcBjNCFvo4P3m6b4rg00kmv89OFc';
+// Stripe Configuration - Loaded securely from server configuration
+// SECURITY: No hardcoded keys present - keys loaded from /api/config endpoint
 
-// Mobile Menu Functions
-function toggleMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
-    
-    if (mobileMenu.classList.contains('active')) {
-        closeMobileMenu();
-    } else {
-        openMobileMenu();
+// Configuration validation function
+function validateConfiguration() {
+    if (!window.RECIPE_RUSH_CONFIG) {
+        throw new Error('RecipeRush configuration not loaded. Please refresh the page.');
     }
+
+    if (!window.RECIPE_RUSH_CONFIG.stripe || !window.RECIPE_RUSH_CONFIG.stripe.publishableKey) {
+        throw new Error('Stripe publishable key not found in configuration. Please check server configuration.');
+    }
+
+    console.log('✅ Stripe configuration validated successfully');
 }
 
+// Mobile Menu Functions
 function openMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
     const burgerButton = document.querySelector('.burger-menu');
-    
+
     mobileMenu.style.display = 'block';
-    mobileMenuOverlay.style.display = 'block';
-    
+
     // Trigger animation
     setTimeout(() => {
         mobileMenu.classList.add('active');
     }, 10);
-    
+
     // Update aria-expanded for accessibility
     if (burgerButton) {
         burgerButton.setAttribute('aria-expanded', 'true');
     }
-    
+
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
 }
 
 function closeMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
     const burgerButton = document.querySelector('.burger-menu');
-    
+
     mobileMenu.classList.remove('active');
-    
+
     // Wait for animation to complete before hiding
     setTimeout(() => {
         mobileMenu.style.display = 'none';
-        mobileMenuOverlay.style.display = 'none';
     }, 300);
-    
+
     // Update aria-expanded for accessibility
     if (burgerButton) {
         burgerButton.setAttribute('aria-expanded', 'false');
     }
-    
+
     // Restore body scroll
     document.body.style.overflow = 'auto';
 }
@@ -68,19 +73,35 @@ const cartTotal = document.getElementById('cartTotal');
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if Stripe is available (only log if we're on a page that needs it)
-    if (typeof Stripe !== 'undefined') {
-        console.log('✅ Stripe library loaded successfully');
-    } else {
-        // Only show error on pages that actually need Stripe (like checkout)
-        if (window.location.pathname.includes('checkout') || window.location.pathname.includes('payment')) {
-            console.error('❌ Stripe library not found! Check if script is loaded');
+    try {
+        // Validate configuration first
+        validateConfiguration();
+
+        // Check if Stripe is available (only log if we're on a page that needs it)
+        if (typeof Stripe !== 'undefined') {
+            console.log('✅ Stripe library loaded successfully');
+        } else {
+            // Only show error on pages that actually need Stripe (like checkout)
+            if (window.location.pathname.includes('checkout') || window.location.pathname.includes('payment')) {
+                console.error('❌ Stripe library not found! Check if script is loaded');
+            }
         }
+
+        loadCartFromStorage();
+        updateCartDisplay();
+        setupEventListeners();
+
+    } catch (error) {
+        console.error('❌ Configuration validation failed:', error);
+        // Show user-friendly error message
+        document.body.innerHTML = `
+            <div style="padding: 2rem; text-align: center; font-family: Arial, sans-serif;">
+                <h1>Configuration Error</h1>
+                <p>Failed to initialize application. Please refresh the page.</p>
+                <p>Error: ${error.message}</p>
+            </div>
+        `;
     }
-    
-    loadCartFromStorage();
-    updateCartDisplay();
-    setupEventListeners();
 });
 
 // Setup event listeners
@@ -113,13 +134,13 @@ function addToCart() {
         id: 'recipe-collection-001',
         name: 'The Complete Recipe Collection',
         price: 10.00,
-        quantity: quantity,
+        quantity,
         image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100&h=75&fit=crop'
     };
 
     // Check if product already exists in cart
     const existingProductIndex = cart.findIndex(item => item.id === product.id);
-    
+
     if (existingProductIndex > -1) {
         cart[existingProductIndex].quantity += quantity;
     } else {
@@ -161,7 +182,7 @@ function updateCartDisplay() {
     // Update cart items display
     if (cartItems) {
         cartItems.innerHTML = '';
-        
+
         if (cart.length === 0) {
             cartItems.innerHTML = '<p>Your cart is empty</p>';
         } else {
@@ -218,17 +239,11 @@ function closeCart() {
 // Form handlers
 function handleContactForm(event) {
     event.preventDefault();
-    
+
     const formData = new FormData(event.target);
-    const data = {
-        name: formData.get('name'),
-        email: formData.get('email'),
-        message: formData.get('message')
-    };
-    
     // Simulate form submission
     showNotification('Message sent successfully!', 'success');
-    
+
     // Reset form
     event.target.reset();
 }
@@ -239,13 +254,13 @@ function showCheckoutForm() {
         showNotification('Your cart is empty!', 'error');
         return;
     }
-    
+
     console.log('Opening checkout form...');
-    
+
     // Populate checkout items
     const checkoutItems = document.getElementById('checkoutItems');
     const checkoutTotal = document.getElementById('checkoutTotal');
-    
+
     checkoutItems.innerHTML = '';
     cart.forEach(item => {
         const itemDiv = document.createElement('div');
@@ -259,16 +274,16 @@ function showCheckoutForm() {
         `;
         checkoutItems.appendChild(itemDiv);
     });
-    
+
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     checkoutTotal.textContent = `£${total.toFixed(2)}`;
-    
+
     // Close cart and show checkout
     closeCart();
     document.getElementById('checkoutModal').style.display = 'block';
-    
+
     console.log('Checkout modal displayed, initializing checkout form...');
-    
+
     // Initialize checkout form
     initializeStripe();
 }
@@ -282,7 +297,7 @@ function closeCheckout() {
 function initializeStripe() {
     try {
         console.log('Setting up checkout form...');
-        
+
         // Handle form submission
         const checkoutForm = document.getElementById('checkoutForm');
         if (checkoutForm) {
@@ -294,9 +309,9 @@ function initializeStripe() {
         } else {
             console.error('Checkout form not found!');
         }
-        
+
         console.log('Checkout form initialized successfully');
-        
+
     } catch (error) {
         console.error('Error initializing checkout form:', error);
         showNotification('Checkout system initialization failed. Please refresh and try again.', 'error');
@@ -307,21 +322,21 @@ function initializeStripe() {
 
 function handleCheckoutSubmit(event) {
     event.preventDefault();
-    
+
     const submitButton = document.getElementById('submit-button');
     const buttonText = document.getElementById('button-text');
     const spinner = document.getElementById('spinner');
-    
+
     // Disable button and show spinner
     submitButton.disabled = true;
     buttonText.textContent = 'Processing...';
     spinner.classList.remove('hidden');
-    
+
     // Get form data
     const firstName = document.getElementById('firstName').value;
     const lastName = document.getElementById('lastName').value;
     const email = document.getElementById('email').value;
-    
+
     // Basic validation
     if (!firstName || !lastName || !email) {
         showNotification('Please fill in all customer details.', 'error');
@@ -330,7 +345,7 @@ function handleCheckoutSubmit(event) {
         spinner.classList.add('hidden');
         return;
     }
-    
+
     // Email validation
     if (!email.includes('@')) {
         showNotification('Please enter a valid email address.', 'error');
@@ -339,15 +354,18 @@ function handleCheckoutSubmit(event) {
         spinner.classList.add('hidden');
         return;
     }
-    
+
     // Process payment directly (no card details needed for Stripe Checkout)
-    processPayment(null, firstName, lastName, email);
+    processPayment(firstName, lastName, email);
 }
 
-async function processPayment(paymentMethod, firstName, lastName, email) {
+async function processPayment(firstName, lastName, email) {
     try {
+        // Validate configuration before proceeding
+        validateConfiguration();
+
         showNotification('Creating checkout session...', 'info');
-        
+
         // Prepare cart items for Stripe
         const items = cart.map(item => ({
             name: item.name,
@@ -355,19 +373,9 @@ async function processPayment(paymentMethod, firstName, lastName, email) {
             quantity: item.quantity,
             image: item.image || 'https://via.placeholder.com/150x150?text=Recipe'
         }));
-        
+
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Create checkout session via your backend
-        const response = await fetch('/create-checkout-session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                items: items,
-                customerEmail: email,
-                customerName: `${firstName} ${lastName}`,
+
         // Create checkout session via your backend
         const response = await fetch('/create-checkout-session', {
             method: 'POST',
@@ -384,32 +392,32 @@ async function processPayment(paymentMethod, firstName, lastName, email) {
             console.error('Network error:', error);
             throw new Error('Network error: Unable to connect to the server. Please check your connection and try again.');
         });
-            const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-            const { error } = await stripe.redirectToCheckout({
-                sessionId: sessionId
-            });
-            
-            if (error) {
-                throw new Error(error.message);
-            }
-        } else if (sessionId) {
-            // Fallback: redirect to the session URL if Stripe is not available
-            const sessionUrl = `/checkout-session/${sessionId}`;
-            showNotification('Redirecting to secure payment...', 'success');
-            window.location.href = sessionUrl;
-        } else {
-            throw new Error('No session ID received');
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
         }
-        
+
+        const data = await response.json();
+        if (data && data.url) {
+            showNotification('Redirecting to secure payment...', 'success');
+            window.location.href = data.url;
+        } else if (data && data.sessionId) {
+            // Back-compat if server still returns only sessionId
+            showNotification('Redirecting to secure payment...', 'success');
+            window.location.href = `/checkout-session/${data.sessionId}`;
+        } else {
+            throw new Error('No checkout URL or sessionId received');
+        }
+
     } catch (error) {
         console.error('Payment processing error:', error);
         showNotification('Payment setup failed. Please try again.', 'error');
-        
+
         // Re-enable button
         const submitButton = document.getElementById('submit-button');
         const buttonText = document.getElementById('button-text');
         const spinner = document.getElementById('spinner');
-        
+
         submitButton.disabled = false;
         buttonText.textContent = 'Pay Now';
         spinner.classList.add('hidden');
@@ -427,7 +435,7 @@ function showNotification(message, type = 'info', duration = 4000) {
     // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    
+
     // Create icon based on type
     const icons = {
         success: '✓',
@@ -435,7 +443,7 @@ function showNotification(message, type = 'info', duration = 4000) {
         info: 'ℹ',
         warning: '⚠'
     };
-    
+
     // Create notification content
     // Create notification content safely
     const iconSpan = document.createElement('span');
@@ -454,14 +462,14 @@ function showNotification(message, type = 'info', duration = 4000) {
     notification.appendChild(iconSpan);
     notification.appendChild(messageSpan);
     notification.appendChild(closeButton);
-    
+
     // Add to page
     document.body.appendChild(notification);
 
     // Animate in from top
     notification.style.transform = 'translateY(-100%)';
     notification.style.opacity = '0';
-    
+
     setTimeout(() => {
         notification.style.transform = 'translateY(0)';
         notification.style.opacity = '1';

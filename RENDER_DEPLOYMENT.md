@@ -131,6 +131,30 @@ git push origin main
 - Use strong, random secrets for JWT and sessions
 - Enable HTTPS (automatic on Render)
 
+### 🚨 CRITICAL SECURITY ALERT
+**JWT_SECRET and SESSION_SECRET were exposed in version control and must be rotated immediately.**
+
+#### Immediate Actions Required:
+1. **Generate new secrets** using the commands below
+2. **Update Render environment variables** with new values
+3. **Restart the application** to invalidate all existing tokens
+4. **Monitor logs** for suspicious activity
+
+#### Generate New Secrets:
+```bash
+# Generate new JWT_SECRET (128 characters)
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# Generate new SESSION_SECRET (128 characters)  
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+#### Why This Matters:
+- **JWT_SECRET**: Used for signing download tokens and CSRF tokens
+- **SESSION_SECRET**: Used for session encryption (if sessions are implemented)
+- **Current Impact**: All existing tokens are compromised and must be invalidated
+- **Solution**: Restarting the server clears in-memory token stores automatically
+
 ### Performance
 - Free tier has cold starts
 - Consider upgrading to paid plans for production

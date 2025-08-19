@@ -3,7 +3,6 @@ module.exports = {
     node: true,
     es2021: true,
     jest: true,
-    browser: true,
   },
   extends: [
     'eslint:recommended',
@@ -61,7 +60,7 @@ module.exports = {
       },
     },
     {
-      files: ['*.html', 'script.js', 'catalog.js', 'contact.js'],
+      files: ['script.js', 'catalog.js', 'contact.js', 'js/**/*.js'],
       env: {
         browser: true,
         node: false,

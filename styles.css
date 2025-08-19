@@ -2,8 +2,10 @@
 :root {
     /* Primary Colors */
     --primary-600: #4f46e5;
+    --primary-600-rgb: 79, 70, 229;
     --primary-700: #4338ca;
     --primary-800: #3730a3;
+    --primary-900: #312e81;
     --primary-50: #eef2ff;
     --primary-100: #e0e7ff;
     
@@ -1119,6 +1121,29 @@ body {
     border: 1px solid var(--gray-200);
 }
 
+.payment-info p {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-2) 0;
+    color: var(--gray-700);
+    font-size: 0.95rem;
+}
+
+.payment-info p:first-child {
+    margin-top: 0;
+}
+
+.payment-info p:last-child {
+    margin-bottom: 0;
+}
+
+.payment-info i {
+    color: var(--green-600);
+    font-size: 1.1rem;
+    min-width: 20px;
+}
+
 .secure-payment-message {
     display: flex;
     align-items: center;
@@ -1130,7 +1155,6 @@ body {
 
 .secure-payment-message i {
     color: var(--green-500);
-    margin-right: var(--space-2);
 }
 
 .secure-payment-description {
@@ -1149,12 +1173,10 @@ body {
 }
 
 .payment-method {
-    background: white;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 2px solid var(--gray-200);
     border-radius: var(--radius-md);
-    border: 1px solid var(--gray-200);
-    font-size: 0.9rem;
-    color: var(--gray-700);
+    background: white;
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -1186,7 +1208,6 @@ body {
     cursor: not-allowed;
     pointer-events: none;
 }
-
 #submit-button {
     width: 100%;
     background: var(--primary-600);
@@ -1208,6 +1229,12 @@ body {
 #submit-button:hover:not(:disabled) {
     background: var(--primary-700);
     transform: translateY(-1px);
+}
+
+#submit-button:focus-visible:not(:disabled) {
+    outline: 2px solid var(--primary-500);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(var(--primary-600-rgb), 0.2);
 }
 
 #submit-button:disabled {

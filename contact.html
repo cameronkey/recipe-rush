@@ -13,7 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 </head>
-<body>
+<body data-page-scripts="contact.js">
     <!-- Header -->
     <header class="header">
         <nav class="nav">
@@ -238,30 +238,18 @@
                     </div>
                 </div>
 
-                <!-- Payment Section -->
+                <!-- Payment Information -->
                 <div class="form-section">
-                    <h3>Payment Information</h3>
-                    <div class="payment-fields">
-                        <div class="payment-field card-number">
-                            <label for="cardNumber">Card Number *</label>
-                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                        </div>
-                        <div class="payment-row">
-                            <div class="payment-field expiry">
-                                <label for="cardExpiry">Expiry *</label>
-                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required>
-                            </div>
-                            <div class="payment-field cvc">
-                                <label for="cardCvc">CVC *</label>
-                                <input type="text" id="cardCvc" placeholder="123" maxlength="3" required>
-                            </div>
-                        </div>
+                    <h3>Secure Payment</h3>
+                    <div class="payment-info">
+                        <p><i class="fas fa-shield-alt"></i> Your payment will be processed securely by Stripe</p>
+                        <p><i class="fas fa-lock"></i> We never store your payment information</p>
+                        <p><i class="fas fa-credit-card"></i> All major credit cards accepted</p>
                     </div>
-                    <div id="card-errors" class="card-errors" role="alert"></div>
                 </div>
 
                 <button type="submit" id="submit-button" class="btn-primary">
-                    <span id="button-text">Pay Now</span>
+                    <span id="button-text">Proceed to Secure Checkout</span>
                     <div id="spinner" class="spinner hidden"></div>
                 </button>
             </form>
@@ -270,7 +258,6 @@
 
 
 
-    <script src="script.js"></script>
-    <script src="contact.js"></script>
+    <script src="js/config-loader.js"></script>
 </body>
 </html>

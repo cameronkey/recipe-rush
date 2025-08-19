@@ -1,51 +1,35 @@
 // Catalog page specific functionality
-// Mobile Menu Functions
-function toggleMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+// SECURITY: Stripe keys are loaded securely from /api/config endpoint
+// No hardcoded keys are present in this file
 
-    if (mobileMenu.classList.contains('active')) {
-        closeMobileMenu();
-    } else {
-        openMobileMenu();
+// Access global functions (defined in script.js)
+const showNotification = window.showNotification || function(message, type) { console.log(`${type}: ${message}`); };
+const closeCart = window.closeCart || function() { console.log('closeCart called'); };
+
+// Helper function to reset checkout button state
+function resetCheckoutButton() {
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const spinner = document.getElementById('spinner');
+
+    if (submitButton && buttonText && spinner) {
+        submitButton.disabled = false;
+        buttonText.textContent = 'Pay Now';
+        spinner.classList.add('hidden');
     }
 }
 
-function openMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
-
-    mobileMenu.style.display = 'block';
-    mobileMenuOverlay.style.display = 'block';
-
-    // Trigger animation
-    setTimeout(() => {
-        mobileMenu.classList.add('active');
-    }, 10);
-
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-}
-
-function closeMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
-
-    mobileMenu.classList.remove('active');
-
-    // Wait for animation to complete before hiding
-    setTimeout(() => {
-        mobileMenu.style.display = 'none';
-        mobileMenuOverlay.style.display = 'none';
-    }, 300);
-
-    // Restore body scroll
-    document.body.style.overflow = 'auto';
-}
+// Mobile Menu Functions - These are now handled by script.js
+// toggleMobileMenu, openMobileMenu, and closeMobileMenu are defined globally
 
 // Checkout functionality
 function showCheckoutForm() {
-    if (cart.length === 0) {
+    // Access cart from global scope when function is called
+-function showCheckoutForm() {
+-    // Access cart from global scope when function is called
+function showCheckoutForm(cart = window.cart) {
+    // Accept cart as parameter with fallback to global
+    if (!cart || cart.length === 0) {
         showNotification('Your cart is empty!', 'error');
         return;
     }
@@ -63,92 +47,17 @@ function showCheckoutForm() {
                 <strong>${item.name}</strong>
                 <span>Qty: ${item.quantity}</span>
             </div>
-            <div class="checkout-item-price">£${(item.price * item.quantity).toFixed(2)}</div>
+            <div class="checkout-item-price">£${(Math.round(item.price * 100) * item.quantity / 100).toFixed(2)}</div>
         `;
         checkoutItems.appendChild(itemDiv);
     });
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = cart.reduce((sum, item) => sum + (Math.round(item.price * 100) * item.quantity), 0) / 100;
     checkoutTotal.textContent = `£${total.toFixed(2)}`;
 
     // Close cart and show checkout
     closeCart();
     document.getElementById('checkoutModal').style.display = 'block';
-
-    // Initialize Stripe - always reinitialize to ensure proper setup
-    setTimeout(() => {
-        initializeStripe();
-    }, 100);
-}
-
-function closeCheckout() {
-    document.getElementById('checkoutModal').style.display = 'none';
-    // Reset form
-    document.getElementById('checkoutForm').reset();
-    // Clear any errors
-    document.getElementById('card-errors').textContent = '';
-}
-
-function initializeStripe() {
-    try {
-        // Initialize Stripe
-        window.stripe = Stripe('pk_live_51RuwBlFSn63qgmcHtd7LdeT7SuT23AzWE0BPDucH5hVpbrVnsnAEoFU6odPchzz7UPgdVFRcBjNCFvo4P3m6b4rg00kmv89OFc');
-
-        console.log('Stripe instance created successfully');
-
-        // Set up payment field formatting and validation
-        setupPaymentFields();
-
-        // Handle form submission
-        const checkoutForm = document.getElementById('checkoutForm');
-        if (checkoutForm) {
-            console.log('Checkout form found, setting up event listener...');
-            // Remove existing listener to prevent duplicates
-            checkoutForm.removeEventListener('submit', handleCheckoutSubmit);
-            checkoutForm.addEventListener('submit', handleCheckoutSubmit);
-            console.log('Event listener attached successfully');
-        } else {
-            console.error('Checkout form not found!');
-        }
-
-        console.log('Stripe initialized successfully - payment fields ready');
-
-    } catch (error) {
-        console.error('Error initializing Stripe:', error);
-        showNotification('Payment system initialization failed. Please refresh and try again.', 'error');
-    }
-}
-
-function setupPaymentFields() {
-    // Card number formatting
-    const cardNumberInput = document.getElementById('cardNumber');
-    if (cardNumberInput) {
-        cardNumberInput.addEventListener('input', function(e) {
-            const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            const formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
-        });
-    }
-
-    // Expiry date formatting
-    const expiryInput = document.getElementById('cardExpiry');
-    if (expiryInput) {
-        expiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2);
-            }
-            e.target.value = value;
-        });
-    }
-
-    // CVC formatting
-    const cvcInput = document.getElementById('cardCvc');
-    if (cvcInput) {
-        cvcInput.addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '');
-        });
-    }
 }
 
 function handleCheckoutSubmit(event) {
@@ -168,146 +77,141 @@ function handleCheckoutSubmit(event) {
     const lastName = document.getElementById('lastName').value;
     const email = document.getElementById('email').value;
 
-    // Check if Stripe is initialized
-    if (!window.stripe) {
-        showNotification('Payment system not ready. Please try again.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
+    // Validate required fields
+    if (!firstName || !lastName || !email) {
+        showNotification('Please fill in all required fields.', 'error');
+        resetCheckoutButton(); // Use the new helper function
         return;
     }
 
-    // Get payment data
-    const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
-    const cardExpiry = document.getElementById('cardExpiry').value;
-    const cardCvc = document.getElementById('cardCvc').value;
+    // Validate email format
+    const trimmedEmail = email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    // Validate payment fields
-    if (!cardNumber || !cardExpiry || !cardCvc) {
-        showNotification('Please fill in all payment fields.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
+    if (!emailRegex.test(trimmedEmail)) {
+        showNotification('Please enter a valid email address.', 'error');
+        resetCheckoutButton(); // Use the new helper function
         return;
     }
 
-    // Basic card validation
-    if (cardNumber.length < 13 || cardNumber.length > 19) {
-        showNotification('Please enter a valid card number.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-
-    if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-        showNotification('Please enter expiry date in MM/YY format.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-
-    if (cardCvc.length < 3 || cardCvc.length > 4) {
-        showNotification('Please enter a valid CVC.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-        return;
-    }
-
-    // Create payment method using Stripe Elements
-    const elements = window.stripe.elements();
-    const cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#424770',
-            },
-        },
-    });
-
-    // Create a temporary container to mount the card element
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    document.body.appendChild(tempContainer);
-
-    cardElement.mount(tempContainer);
-
-    // Create payment method
-    window.stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-            name: `${firstName} ${lastName}`,
-            email,
-        },
-    }).then(function(result) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-
-        if (result.error) {
-            // Show error
-            const errorElement = document.getElementById('card-errors');
-            errorElement.textContent = result.error.message;
-
-            // Re-enable button
-            submitButton.disabled = false;
-            buttonText.textContent = 'Pay Now';
-            spinner.classList.add('hidden');
-        } else {
-            // Payment method created successfully
-            processPayment(result.paymentMethod, firstName, lastName, email);
-        }
-    }).catch(function(error) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-
-        console.error('Payment error:', error);
-        showNotification('Payment processing failed. Please try again.', 'error');
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        spinner.classList.add('hidden');
-    });
+    // Process payment directly - server will handle Stripe integration
+    processPayment(firstName, lastName, email);
 }
 
-function processPayment(paymentMethod, firstName, lastName, email) {
-    // In a real implementation, you would send this to your server
-    // to create a payment intent and complete the payment
+async function processPayment(firstName, lastName, email) {
+    try {
+        // Get CSRF token from meta tag
+        const csrfToken = document.getElementById('csrf-token-meta').getAttribute('content');
+        if (!csrfToken) {
+            throw new Error('CSRF token not available');
+        }
 
-    // For now, we'll simulate a successful payment
-    setTimeout(() => {
-        // Simulate successful payment
-        showNotification('Payment successful! Processing your order...', 'success');
+        // Access cart from global scope when function is called
+        const cart = window.cart;
 
-        // Clear cart
-        cart = [];
-        saveCartToStorage();
-        updateCartDisplay();
+        // Prepare order data
+        const orderData = {
+            items: cart,
+            customerEmail: email,
+            customerName: `${firstName} ${lastName}`,
+            total: cart.reduce((sum, item) => sum + (Math.round(item.price * 100) * item.quantity), 0) / 100
+        };
 
-        // Close checkout
-        closeCheckout();
+        // Send order to server to create Stripe checkout session
+        const response = await fetch('/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify(orderData)
+        });
 
-        // Show success message
-        showNotification('Order completed! Check your email for your e-book download link.', 'success');
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
 
-        // In production, you would:
-        // 1. Send order details to your server
-        // 2. Process payment with Stripe
-        // 3. Generate secure download link
-        // 4. Send confirmation email with download link
+        const result = await response.json();
 
-    }, 2000);
+        if (result.url) {
+            // Validate Stripe checkout URL before redirecting
+            try {
+                const checkoutUrl = new URL(result.url);
+                const allowedOrigins = [
+                    'https://checkout.stripe.com',
+                    'https://js.stripe.com'
+                ];
+
+                const isValidUrl = allowedOrigins.some(origin =>
+                    checkoutUrl.origin === origin ||
+                    checkoutUrl.href.startsWith(origin)
+                );
+
+                if (!isValidUrl) {
+                    throw new Error(`Invalid checkout URL origin: ${checkoutUrl.origin}`);
+                }
+
+                // URL is valid, redirect to Stripe Checkout
+                window.location.href = result.url;
+            } catch (urlError) {
+                console.error('URL validation error:', urlError);
+                throw new Error('Invalid checkout URL received from server');
+            }
+        } else {
+            throw new Error('No checkout URL received from server');
+        }
+
+    } catch (error) {
+        console.error('Payment processing error:', error);
+        showNotification('Payment processing failed. Please try again.', 'error');
+
+        // Re-enable button
+        resetCheckoutButton(); // Use the new helper function
+    }
+}
+
+// Load CSRF token when page loads
+async function loadCSRFToken() {
+    try {
+        const response = await fetch('/csrf-token');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+        }
+        const data = await response.json();
+        let metaElement = document.getElementById('csrf-token-meta');
+        if (!metaElement) {
+            metaElement = document.createElement('meta');
+            metaElement.id = 'csrf-token-meta';
+            document.head.appendChild(metaElement);
+        }
+        metaElement.setAttribute('content', data.token);
+        console.log('CSRF token loaded successfully');
+    } catch (error) {
+        console.error('Error loading CSRF token:', error);
+        showNotification('Failed to load security token. Please refresh the page.', 'error');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     // Catalog page is now simplified to just show the single product
     // All functionality is handled by the main script.js file
     console.log('Catalog page loaded - single product display');
+
+    // Load CSRF token
+    loadCSRFToken();
+
+    // Set up checkout form event listener
+    const checkoutForm = document.getElementById('checkoutForm');
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', handleCheckoutSubmit);
+        console.log('Checkout form event listener attached');
+    }
 });
 
 // Export functions for use in other scripts
 window.catalogFunctions = {
-    // Simplified catalog functions
+    showCheckoutForm,
+    handleCheckoutSubmit,
+    processPayment,
+    loadCSRFToken
 };

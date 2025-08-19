@@ -23,9 +23,9 @@
 
 **CRITICAL**: You must update the frontend JavaScript files with your live Stripe publishable key:
 
-1. **script.js**: Update line with `STRIPE_PUBLISHABLE_KEY`
-2. **contact.js**: Update line with `Stripe('pk_live_your_actual_key')`
-3. **catalog.js**: Update line with `Stripe('pk_live_your_actual_key')`
+1. **Backend Configuration**: Ensure `/api/config` endpoint returns the correct live Stripe publishable key
+2. **Environment Variables**: Set `STRIPE_PUBLISHABLE_KEY` in Render dashboard
+3. **Frontend**: Verify all JavaScript files use `window.RECIPE_RUSH_CONFIG.stripe.publishableKey` instead of hardcoded keys
 
 Replace `pk_live_your_actual_live_publishable_key_here` with your actual live key from Stripe dashboard.
 

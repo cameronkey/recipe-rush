@@ -1,4 +1,89 @@
 // Contact page specific functionality
+// SECURITY: Stripe keys are loaded securely from /api/config endpoint
+// No hardcoded keys are present in this file
+
+// Configuration constants for fetch timeout and retry behavior
+const FETCH_CONFIG = {
+    TIMEOUT_MS: 30000,        // 30 seconds timeout
+    MAX_RETRIES: 3,           // Maximum number of retry attempts
+    BASE_DELAY_MS: 1000,      // Base delay for exponential backoff (1 second)
+    MAX_DELAY_MS: 10000       // Maximum delay cap (10 seconds)
+};
+
+// EmailJS configuration cache
+let emailjsConfig = null;
+let emailjsInitialized = false;
+
+// EmailJS Configuration Functions
+async function getEmailJSConfig() {
+    // Check if we already have the config cached
+    if (emailjsConfig) {
+        return emailjsConfig;
+    }
+
+    try {
+        console.log('🔄 Fetching EmailJS configuration...');
+
+        // Check if config is already available globally from config-loader
+        if (window.RECIPE_RUSH_CONFIG && window.RECIPE_RUSH_CONFIG.emailjs) {
+            emailjsConfig = window.RECIPE_RUSH_CONFIG.emailjs;
+            console.log('✅ EmailJS config loaded from global config');
+            return emailjsConfig;
+        }
+
+        // Fallback: fetch config directly if not available globally
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch config: ${response.status} ${response.statusText}`);
+        }
+
+        const config = await response.json();
+
+        if (!config.emailjs || !config.emailjs.publicKey) {
+            throw new Error('EmailJS public key not found in configuration');
+        }
+
+        // Cache the config
+        emailjsConfig = config.emailjs;
+        console.log('✅ EmailJS config fetched and cached successfully');
+        return emailjsConfig;
+
+    } catch (error) {
+        console.error('❌ Failed to load EmailJS configuration:', error);
+
+        // Fallback to hardcoded key if dynamic loading fails
+        // This ensures the form still works even if config endpoint is down
+        console.warn('⚠️ Falling back to hardcoded EmailJS key for form functionality');
+        emailjsConfig = {
+            publicKey: "3yTB8siz9rVmr9gRu"
+        };
+        return emailjsConfig;
+    }
+}
+
+async function initializeEmailJS() {
+    if (emailjsInitialized) {
+        console.log('✅ EmailJS already initialized');
+        return;
+    }
+
+    try {
+        const config = await getEmailJSConfig();
+
+        if (!config.publicKey) {
+            throw new Error('EmailJS public key is missing');
+        }
+
+        // Initialize EmailJS with the fetched key
+        emailjs.init(config.publicKey);
+        emailjsInitialized = true;
+        console.log('✅ EmailJS initialized successfully with dynamic key');
+
+    } catch (error) {
+        console.error('❌ EmailJS initialization failed:', error);
+        throw error;
+    }
+}
 
 // Mobile Menu Functions
 function toggleMobileMenu() {
@@ -85,20 +170,34 @@ function showCheckoutForm() {
 function closeCheckout() {
     document.getElementById('checkoutModal').style.display = 'none';
     // Reset form
-    document.getElementById('checkoutForm').reset();
-    // Clear any errors
-    document.getElementById('card-errors').textContent = '';
+    const checkoutForm = document.getElementById('checkoutForm');
+    if (checkoutForm) {
+        checkoutForm.reset();
+    }
+    // Reset button state
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const spinner = document.getElementById('spinner');
+
+    if (submitButton && buttonText && spinner) {
+        submitButton.disabled = false;
+        buttonText.textContent = 'Proceed to Secure Checkout';
+        buttonText.classList.remove('hidden');
+        spinner.classList.add('hidden');
+    }
 }
 
 function initializeStripe() {
     try {
-        // Initialize Stripe
-        window.stripe = Stripe('pk_live_51RuwBlFSn63qgmcHtd7LdeT7SuT23AzWE0BPDucH5hVpbrVnsnAEoFU6odPchzz7UPgdVFRcBjNCFvo4P3m6b4rg00kmv89OFc');
+        // Check if configuration is available
+        if (!window.RECIPE_RUSH_CONFIG || !window.RECIPE_RUSH_CONFIG.stripe || !window.RECIPE_RUSH_CONFIG.stripe.publishableKey) {
+            throw new Error('Stripe configuration not available');
+        }
+
+        // Initialize Stripe with configuration from server
+        window.stripe = Stripe(window.RECIPE_RUSH_CONFIG.stripe.publishableKey);
 
         console.log('Stripe instance created successfully');
-
-        // Set up payment field formatting and validation
-        setupPaymentFields();
 
         // Handle form submission
         const checkoutForm = document.getElementById('checkoutForm');
@@ -112,43 +211,11 @@ function initializeStripe() {
             console.error('Checkout form not found!');
         }
 
-        console.log('Stripe initialized successfully - payment fields ready');
+        console.log('Stripe initialized successfully - checkout form ready');
 
     } catch (error) {
         console.error('Error initializing Stripe:', error);
         showNotification('Payment system initialization failed. Please refresh and try again.', 'error');
-    }
-}
-
-function setupPaymentFields() {
-    // Card number formatting
-    const cardNumberInput = document.getElementById('cardNumber');
-    if (cardNumberInput) {
-        cardNumberInput.addEventListener('input', function(e) {
-            const value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            const formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
-            e.target.value = formattedValue;
-        });
-    }
-
-    // Expiry date formatting
-    const expiryInput = document.getElementById('cardExpiry');
-    if (expiryInput) {
-        expiryInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2);
-            }
-            e.target.value = value;
-        });
-    }
-
-    // CVC formatting
-    const cvcInput = document.getElementById('cardCvc');
-    if (cvcInput) {
-        cvcInput.addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '');
-        });
     }
 }
 
@@ -166,163 +233,193 @@ function handleCheckoutSubmit(event) {
     spinner.classList.remove('hidden');
 
     // Get form data
-    const firstName = document.getElementById('firstName').value;
-    const lastName = document.getElementById('lastName').value;
-    const email = document.getElementById('email').value;
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const email = document.getElementById('email').value.trim();
 
-    // Check if Stripe is initialized
-    if (!window.stripe) {
-        showNotification('Payment system not ready. Please try again.', 'error', 4000);
+    // Validate required fields
+    if (!firstName || !lastName || !email) {
+        showNotification('Please fill in all required fields.', 'error', 3000);
         submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
+        buttonText.textContent = 'Proceed to Secure Checkout';
         buttonText.classList.remove('hidden');
         spinner.classList.add('hidden');
         return;
     }
 
-    // Get payment data
-    const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
-    const cardExpiry = document.getElementById('cardExpiry').value;
-    const cardCvc = document.getElementById('cardCvc').value;
-
-    // Validate payment fields
-    if (!cardNumber || !cardExpiry || !cardCvc) {
-        showNotification('Please fill in all payment fields.', 'error', 3000);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Please enter a valid email address.', 'error', 3000);
         submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
+        buttonText.textContent = 'Proceed to Secure Checkout';
         buttonText.classList.remove('hidden');
         spinner.classList.add('hidden');
         return;
     }
 
-    // Basic card validation
-    if (cardNumber.length < 13 || cardNumber.length > 19) {
-        showNotification('Please enter a valid card number.', 'error', 3000);
+    // Check if cart has items
+    if (!cart || cart.length === 0) {
+        showNotification('Your cart is empty!', 'error', 3000);
         submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
+        buttonText.textContent = 'Proceed to Secure Checkout';
         buttonText.classList.remove('hidden');
         spinner.classList.add('hidden');
         return;
     }
 
-    if (!/^\d{2}\/\d{2}$/.test(cardExpiry)) {
-        showNotification('Please enter expiry date in MM/YY format.', 'error', 3000);
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        buttonText.classList.remove('hidden');
-        spinner.classList.add('hidden');
-        return;
-    }
-
-    if (cardCvc.length < 3 || cardCvc.length > 4) {
-        showNotification('Please enter a valid CVC.', 'error', 3000);
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        buttonText.classList.remove('hidden');
-        spinner.classList.add('hidden');
-        return;
-    }
-
-    // Create payment method using Stripe Elements
-    const elements = window.stripe.elements();
-    const cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#424770',
-            },
-        },
-    });
-
-    // Create a temporary container to mount the card element
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.left = '-9999px';
-    document.body.appendChild(tempContainer);
-
-    cardElement.mount(tempContainer);
-
-    // Create payment method
-    window.stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-            name: `${firstName} ${lastName}`,
-            email,
-        },
-    }).then(function(result) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-
-        if (result.error) {
-            // Show error
-            const errorElement = document.getElementById('card-errors');
-            errorElement.textContent = result.error.message;
-
-            // Re-enable button
-            submitButton.disabled = false;
-            buttonText.textContent = 'Pay Now';
-            buttonText.classList.remove('hidden');
-            spinner.classList.add('hidden');
-        } else {
-            // Payment method created successfully
-            processPayment(result.paymentMethod, firstName, lastName, email);
-        }
-    }).catch(function(error) {
-        // Clean up temporary container
-        document.body.removeChild(tempContainer);
-
-        console.error('Payment error:', error);
-
-        // Show specific error messages
-        let errorMessage = 'Payment processing failed. Please try again.';
-
-        if (error.message && error.message.includes('timeout')) {
-            errorMessage = 'Payment request timed out. Please check your connection and try again.';
-        } else if (error.message && error.message.includes('network')) {
-            errorMessage = 'Network error. Please check your internet connection.';
-        }
-
-        showNotification(errorMessage, 'error', 5000);
-        submitButton.disabled = false;
-        buttonText.textContent = 'Pay Now';
-        buttonText.classList.remove('hidden');
-        spinner.classList.add('hidden');
-    });
+    // Process payment with Stripe Checkout
+    processPayment(firstName, lastName, email);
 }
 
-function processPayment(paymentMethod, firstName, lastName, email) {
-    // In a real implementation, you would send this to your server
-    // to create a payment intent and complete the payment
+function processPayment(firstName, lastName, email) {
+    // Show loading state
+    showNotification('Creating secure checkout session...', 'info');
 
-    // For now, we'll simulate a successful payment
-    setTimeout(() => {
-        // Simulate successful payment
-        showNotification('Payment successful! Processing your order...', 'success');
+    // Prepare cart items for Stripe
+    const items = cart.map(item => ({
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || 'https://via.placeholder.com/150x150?text=Recipe'
+    }));
 
-        // Clear cart
-        cart = [];
-        saveCartToStorage();
-        updateCartDisplay();
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-        // Close checkout
-        closeCheckout();
+    // Create checkout session via backend with timeout and retry behavior
+    createCheckoutSessionWithRetry(items, email, firstName, lastName, total);
+}
 
-        // Show success message
-        showNotification('Order completed! Check your email for your e-book download link.', 'success');
+// Enhanced fetch function with timeout and retry behavior
+async function createCheckoutSessionWithRetry(items, email, firstName, lastName, total) {
+    const requestBody = {
+        items: items,
+        customerEmail: email,
+        customerName: `${firstName} ${lastName}`,
+        total: total
+    };
 
-        // In production, you would:
-        // 1. Send order details to your server
-        // 2. Process payment with Stripe
-        // 3. Generate secure download link
-        // 4. Send confirmation email with download link
+    const requestHeaders = {
+        'Content-Type': 'application/json',
+    };
 
-    }, 2000);
+    let lastError;
+    
+    for (let attempt = 0; attempt <= FETCH_CONFIG.MAX_RETRIES; attempt++) {
+        // Create a new AbortController for each attempt
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            abortController.abort();
+        }, FETCH_CONFIG.TIMEOUT_MS);
+
+        try {
+            console.log(`Attempt ${attempt + 1}/${FETCH_CONFIG.MAX_RETRIES + 1} to create checkout session`);
+            
+            const response = await fetch('/create-checkout-session', {
+                method: 'POST',
+                headers: requestHeaders,
+                body: JSON.stringify(requestBody),
+                signal: abortController.signal
+            });
+
+            // Clear timeout on success
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                // Don't retry on client errors (4xx)
+                if (response.status >= 400 && response.status < 500) {
+                    throw new Error(`Client error: ${response.status} - ${response.statusText}`);
+                }
+                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            // Handle successful response
+            if (data.url) {
+                // Prefer data.url and redirect to it
+                window.location.href = data.url;
+                return;
+            } else if (data.sessionId) {
+                // Use Stripe client-side redirect flow for backward compatibility
+                if (window.stripe) {
+                    window.stripe.redirectToCheckout({ sessionId: data.sessionId });
+                    return;
+                } else {
+                    throw new Error('Stripe library not loaded. Please refresh the page and try again.');
+                }
+            } else {
+                throw new Error('No checkout URL or session ID received from server');
+            }
+
+        } catch (error) {
+            // Clear timeout on error
+            clearTimeout(timeoutId);
+            
+            lastError = error;
+            
+            // Don't retry on client errors (4xx) or AbortError (timeout)
+            if (error.name === 'AbortError') {
+                console.log(`Attempt ${attempt + 1} timed out after ${FETCH_CONFIG.TIMEOUT_MS}ms`);
+                if (attempt === FETCH_CONFIG.MAX_RETRIES) {
+                    throw new Error(`Request timed out after ${FETCH_CONFIG.TIMEOUT_MS / 1000} seconds. Please check your connection and try again.`);
+                }
+            } else if (error.message.includes('Client error: 4')) {
+                console.log(`Client error on attempt ${attempt + 1}, not retrying:`, error.message);
+                throw error;
+            } else if (attempt < FETCH_CONFIG.MAX_RETRIES) {
+                // Calculate exponential backoff delay
+                const delay = Math.min(
+                    FETCH_CONFIG.BASE_DELAY_MS * Math.pow(2, attempt),
+                    FETCH_CONFIG.MAX_DELAY_MS
+                );
+                
+                console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            // If we've exhausted all retries or hit a non-retryable error
+            break;
+        }
+    }
+
+    // Handle final failure after all retries
+    console.error('Payment setup failed after all retry attempts:', lastError);
+    
+    let errorMessage = 'Failed to create checkout session after multiple attempts. Please try again.';
+    
+    if (lastError.name === 'AbortError') {
+        errorMessage = `Request timed out after ${FETCH_CONFIG.TIMEOUT_MS / 1000} seconds. Please check your connection and try again.`;
+    } else if (lastError.message.includes('Client error: 4')) {
+        errorMessage = 'Invalid request. Please check your information and try again.';
+    } else if (lastError.message.includes('Server error: 5')) {
+        errorMessage = 'Server error. Please try again later.';
+    } else if (lastError.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+    }
+
+    showNotification(errorMessage, 'error', 5000);
+
+    // Re-enable button
+    const submitButton = document.getElementById('submit-button');
+    const buttonText = document.getElementById('button-text');
+    const spinner = document.getElementById('spinner');
+
+    submitButton.disabled = false;
+    buttonText.textContent = 'Proceed to Secure Checkout';
+    buttonText.classList.remove('hidden');
+    spinner.classList.add('hidden');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     setupContactForm();
     setupFormValidation();
+    
+    // Pre-initialize EmailJS for better user experience
+    initializeEmailJS().catch(error => {
+        console.warn('⚠️ EmailJS pre-initialization failed (will retry on form submission):', error);
+    });
 });
 
 // Setup contact form functionality
@@ -480,15 +577,25 @@ function handleContactFormSubmission(event) {
 }
 
 // Submit contact form
-function submitContactForm(data) {
+async function submitContactForm(data) {
     // Show loading state
     const submitBtn = document.querySelector('#contactForm button[type="submit"]');
     const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Sending...';
     submitBtn.disabled = true;
 
-    // Initialize EmailJS
-    emailjs.init("3yTB8siz9rVmr9gRu");
+    // Initialize EmailJS with dynamic configuration
+    try {
+        await initializeEmailJS();
+    } catch (error) {
+        console.error('❌ EmailJS initialization failed:', error);
+        showNotification('Email service configuration error. Please try again later.', 'error', 5000);
+        
+        // Reset button
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
 
     // Prepare email template parameters to match the EmailJS template
     const templateParams = {

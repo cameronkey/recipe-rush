@@ -1,15 +1,28 @@
 const request = require('supertest');
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 // Mock the server app for testing
 // In a real setup, you'd export the app from server.js
 let app;
+let tempDir;
 
 beforeAll(() => {
+  // Create a temporary directory for static assets
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'recipe-rush-test-'));
+
+  // Create some test static files in the temp directory
+  fs.writeFileSync(path.join(tempDir, 'test.txt'), 'This is a test file');
+  fs.writeFileSync(path.join(tempDir, 'sample.html'), '<html><body>Test HTML</body></html>');
+
   // Create a basic Express app for testing
   app = express();
   app.use(express.json());
-  app.use(express.static('.'));
+
+  // Mount static assets under /static prefix instead of serving entire repo root
+  app.use('/static', express.static(tempDir));
 
   // Mock some basic routes that would exist in the real server
   app.get('/health', (req, res) => {
@@ -38,6 +51,13 @@ beforeAll(() => {
   });
 });
 
+afterAll(() => {
+  // Clean up the temporary directory after tests complete
+  if (tempDir && fs.existsSync(tempDir)) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
 describe('RecipeRush Server Integration Tests', () => {
   describe('Health Endpoint', () => {
     test('GET /health should return server status', async () => {
@@ -47,7 +67,9 @@ describe('RecipeRush Server Integration Tests', () => {
 
       expect(response.body).toHaveProperty('status', 'OK');
       expect(response.body).toHaveProperty('timestamp');
-      expect(new Date(response.body.timestamp)).toBeInstanceOf(Date);
+      const ts = response.body.timestamp;
+      expect(typeof ts).toBe('string');
+      expect(Number.isNaN(Date.parse(ts))).toBe(false);
     });
   });
 
@@ -112,10 +134,29 @@ describe('RecipeRush Server Integration Tests', () => {
   });
 
   describe('Static File Serving', () => {
-    test('should serve static files from root directory', async () => {
-      // This test assumes the app is serving static files
-      // In a real scenario, you'd test with actual static files
-      expect(app._router).toBeDefined();
+    test('should serve static files from /static prefix', async () => {
+      // Test that static files are served from the /static prefix
+      const response = await request(app)
+        .get('/static/test.txt')
+        .expect(200);
+
+      expect(response.text).toBe('This is a test file');
+    });
+
+    test('should serve HTML files from /static prefix', async () => {
+      const response = await request(app)
+        .get('/static/sample.html')
+        .expect(200);
+
+      expect(response.text).toContain('<html>');
+      expect(response.text).toContain('Test HTML');
+    });
+
+    test('should not expose repo files outside /static prefix', async () => {
+      // Test that the root static serving is not accessible
+      await request(app)
+        .get('/package.json')
+        .expect(404);
     });
   });
 });

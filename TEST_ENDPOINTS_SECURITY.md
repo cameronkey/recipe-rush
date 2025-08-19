@@ -35,19 +35,24 @@ The following test endpoints are now secured:
 - `NODE_ENV`: Set to `'production'` to enable production mode
 
 #### Optional
-- `ENABLE_TEST_ENDPOINTS`: Set to `'true'` to enable test endpoints in production
+- `ENABLE_TEST_ENDPOINTS`: Set to a specific truthy value to enable test endpoints in production
+  - **Accepted values**: `'true'`, `'1'`, `'yes'`, `'on'`, `'enabled'` (case-insensitive)
+  - **Note**: The parser converts the value to lowercase and only accepts these exact whitelist values
 
 ### 4. Implementation Details
 
 #### Security Check Pattern
 ```javascript
 // Production security check
-if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TEST_ENDPOINTS) {
+const enableTestEndpoints = ['true', '1', 'yes', 'on', 'enabled'].includes(
+  String(process.env.ENABLE_TEST_ENDPOINTS || '').toLowerCase()
+);
+if (process.env.NODE_ENV === 'production' && !enableTestEndpoints) {
     console.log('🚫 Test endpoint disabled in production');
-    return res.status(404).json({ 
-        error: 'Endpoint not found',
-        message: 'Test endpoints are disabled in production'
-    });
+    return res
+      .set('Cache-Control', 'no-store, no-cache, must-revalidate')
+      .status(404)
+      .json({ error: 'Not found' }); // keep body generic to avoid disclosing endpoint existence
 }
 ```
 
@@ -55,18 +60,36 @@ if (process.env.NODE_ENV === 'production' && !process.env.ENABLE_TEST_ENDPOINTS)
 - Disabled endpoints log: `🚫 Test [endpoint] endpoint disabled in production`
 - Maintains existing logging for enabled endpoints
 
+#### Environment Variable Parsing Semantics
+The `ENABLE_TEST_ENDPOINTS` environment variable is parsed using a case-insensitive comparison against a predefined list of truthy values. This provides flexibility while maintaining security by requiring explicit configuration.
+
+**Truthy values that enable test endpoints:**
+- `'true'`, `'1'`, `'yes'`, `'on'`, `'enabled'`
+- Only these exact values are accepted (case-insensitive)
+
+**Falsy values that disable test endpoints:**
+- `undefined` (variable not set)
+- `''` (empty string)
+- `'false'`, `'0'`, `'no'`, `'off'`, `'disabled'`
+- Any other value not in the accepted truthy list
+
 ### 5. Configuration Examples
 
 #### Production (Test Endpoints Disabled)
 ```bash
 NODE_ENV=production
-ENABLE_TEST_ENDPOINTS=false  # or omit entirely
+# Do not set ENABLE_TEST_ENDPOINTS (omit entirely) to keep test endpoints disabled
 ```
 
 #### Production (Test Endpoints Enabled - Use with Caution)
 ```bash
 NODE_ENV=production
 ENABLE_TEST_ENDPOINTS=true
+# Alternative acceptable values:
+# ENABLE_TEST_ENDPOINTS=1
+# ENABLE_TEST_ENDPOINTS=yes
+# ENABLE_TEST_ENDPOINTS=on
+# ENABLE_TEST_ENDPOINTS=enabled
 ```
 
 #### Development
@@ -89,6 +112,7 @@ NODE_ENV=development
 - Set `NODE_ENV=production` in environment variables
 - Set `ENABLE_TEST_ENDPOINTS=false` (or omit) for production security
 - Only set `ENABLE_TEST_ENDPOINTS=true` temporarily for debugging
+- **Note**: The parser accepts various truthy values like `'1'`, `'yes'`, `'on'`, `'enabled'` in addition to `'true'`
 
 #### Local Development
 - Test endpoints work normally in development mode
