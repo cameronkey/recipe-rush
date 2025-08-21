@@ -25,6 +25,7 @@ function resetCheckoutButton() {
 // Checkout functionality
 function showCheckoutForm() {
     // Access cart from global scope when function is called
+}
 function showCheckoutForm() {
     // Use cart manager instead of global cart variable
     const cart = window.RecipeRushCart.getItems();
