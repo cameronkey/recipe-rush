@@ -152,7 +152,7 @@
 
             // Determine which scripts to load based on current page
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-            const scriptsToLoad = ['script.js'];
+            const scriptsToLoad = ['js/cart-manager.js', 'script.js'];
 
             // Try to get page-specific scripts from data attribute first
             const bodyElement = document.body;

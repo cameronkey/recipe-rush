@@ -1,12 +1,11 @@
-// Global variables
-let cart = [];
-// Expose only necessary cart operations, not the cart itself
+// Cart operations now handled by RecipeRushCart manager
 window.cartOperations = {
-    getCart: () => [...cart], // Return a copy to prevent direct manipulation
-    getCartLength: () => cart.length,
-    getCartTotal: () =>
-        cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    getCart: () => window.RecipeRushCart.getItems(),
+    getCartLength: () => window.RecipeRushCart.getCount(),
+    getCartTotal: () => window.RecipeRushCart.getTotal()
 };
+
+// Cart will be loaded when DOM is ready, not immediately
 
 // Stripe Configuration - Loaded securely from server configuration
 // SECURITY: No hardcoded keys present - keys loaded from /api/config endpoint
@@ -87,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        loadCartFromStorage();
+                // Cart is now managed by RecipeRushCart manager
         updateCartDisplay();
         setupEventListeners();
 
@@ -138,94 +137,26 @@ function addToCart() {
         image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100&h=75&fit=crop'
     };
 
-    // Check if product already exists in cart
-    const existingProductIndex = cart.findIndex(item => item.id === product.id);
-
-    if (existingProductIndex > -1) {
-        cart[existingProductIndex].quantity += quantity;
-    } else {
-        cart.push(product);
-    }
-
-    saveCartToStorage();
-    updateCartDisplay();
+    // Use the cart manager to add the item
+    window.RecipeRushCart.addItem(product);
     showNotification('Product added to cart!', 'success');
 }
 
 function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
-    saveCartToStorage();
-    updateCartDisplay();
+    window.RecipeRushCart.removeItem(productId);
     showNotification('Product removed from cart!', 'info');
 }
 
 function updateQuantity(productId, newQuantity) {
-    const product = cart.find(item => item.id === productId);
-    if (product) {
-        if (newQuantity <= 0) {
-            removeFromCart(productId);
-        } else {
-            product.quantity = newQuantity;
-            saveCartToStorage();
-            updateCartDisplay();
-        }
-    }
+    window.RecipeRushCart.updateQuantity(productId, newQuantity);
 }
 
+// Cart display is now handled by RecipeRushCart manager
 function updateCartDisplay() {
-    // Update cart count
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    if (cartCount) {
-        cartCount.textContent = totalItems;
-    }
-
-    // Update cart items display
-    if (cartItems) {
-        cartItems.innerHTML = '';
-
-        if (cart.length === 0) {
-            cartItems.innerHTML = '<p>Your cart is empty</p>';
-        } else {
-            cart.forEach(item => {
-                const cartItem = document.createElement('div');
-                cartItem.className = 'cart-item';
-                cartItem.innerHTML = `
-                    <div class="cart-item-info">
-                        <img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
-                        <div>
-                            <h4>${item.name}</h4>
-                            <p>£${item.price.toFixed(2)} x ${item.quantity}</p>
-                        </div>
-                    </div>
-                    <div class="cart-item-controls">
-                        <button onclick="updateQuantity('${item.id}', ${item.quantity - 1})">-</button>
-                        <span class="quantity">${item.quantity}</span>
-                        <button onclick="updateQuantity('${item.id}', ${item.quantity + 1})">+</button>
-                        <button class="remove-btn" onclick="removeFromCart('${item.id}')">×</button>
-                    </div>
-                `;
-                cartItems.appendChild(cartItem);
-            });
-        }
-    }
-
-    // Update cart total
-    if (cartTotal) {
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        cartTotal.textContent = `£${total.toFixed(2)}`;
-    }
+    window.RecipeRushCart.updateDisplay();
 }
 
-function saveCartToStorage() {
-    localStorage.setItem('recipeRushCart', JSON.stringify(cart));
-}
-
-function loadCartFromStorage() {
-    const savedCart = localStorage.getItem('recipeRushCart');
-    if (savedCart) {
-        cart = JSON.parse(savedCart);
-    }
-}
+// Cart storage is now handled by RecipeRushCart manager
 
 // Modal functions
 function openCart() {
@@ -250,7 +181,7 @@ function handleContactForm(event) {
 
 // Checkout functionality
 function showCheckoutForm() {
-    if (cart.length === 0) {
+    if (window.RecipeRushCart.getCount() === 0) {
         showNotification('Your cart is empty!', 'error');
         return;
     }
@@ -262,7 +193,7 @@ function showCheckoutForm() {
     const checkoutTotal = document.getElementById('checkoutTotal');
 
     checkoutItems.innerHTML = '';
-    cart.forEach(item => {
+    window.RecipeRushCart.getItems().forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'checkout-item';
         itemDiv.innerHTML = `
@@ -275,7 +206,7 @@ function showCheckoutForm() {
         checkoutItems.appendChild(itemDiv);
     });
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const total = window.RecipeRushCart.getTotal();
     checkoutTotal.textContent = `£${total.toFixed(2)}`;
 
     // Close cart and show checkout

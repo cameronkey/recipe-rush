@@ -692,8 +692,13 @@ app.get('/test-download/:token', (req, res) => {
     });
 });
 
-// Root endpoint for basic connectivity test
+// Root endpoint - serve the main HTML page
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// API status endpoint
+app.get('/api/status', (req, res) => {
     res.json({
         message: 'RecipeRush API is running',
         status: 'operational',

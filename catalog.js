@@ -106,8 +106,8 @@ async function processPayment(firstName, lastName, email) {
             throw new Error('CSRF token not available');
         }
 
-        // Access cart from global scope when function is called
-        const cart = window.cart;
+        // Access cart from cart manager
+        const cart = window.RecipeRushCart.getItems();
 
         // Prepare order data
         const orderData = {
