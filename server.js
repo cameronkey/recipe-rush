@@ -483,21 +483,31 @@ app.get('/api/config', (req, res) => {
         timestamp: new Date().toISOString()
     };
 
-    // Validate that required config is present
-    if (!config.stripe.publishableKey) {
-        console.error('❌ STRIPE_PUBLISHABLE_KEY not configured');
-        return res.status(500).json({
-            error: 'Configuration incomplete',
-            message: 'Stripe publishable key not configured'
-        });
-    }
+    // Validate that required config is present in production
+    if (process.env.NODE_ENV === 'production') {
+        if (!config.stripe.publishableKey) {
+            console.error('❌ STRIPE_PUBLISHABLE_KEY not configured');
+            return res.status(500).json({
+                error: 'Configuration incomplete',
+                message: 'Stripe publishable key not configured'
+            });
+        }
 
-    if (!config.emailjs.publicKey) {
-        console.error('❌ EMAILJS_PUBLIC_KEY not configured');
-        return res.status(500).json({
-            error: 'Configuration incomplete',
-            message: 'EmailJS public key not configured'
-        });
+        if (!config.emailjs.publicKey) {
+            console.error('❌ EMAILJS_PUBLIC_KEY not configured');
+            return res.status(500).json({
+                error: 'Configuration incomplete',
+                message: 'EmailJS public key not configured'
+            });
+        }
+    } else {
+        // In development, warn about missing config but don't fail
+        if (!config.stripe.publishableKey) {
+            console.warn('⚠️ STRIPE_PUBLISHABLE_KEY not configured (development mode)');
+        }
+        if (!config.emailjs.publicKey) {
+            console.warn('⚠️ EMAILJS_PUBLIC_KEY not configured (development mode)');
+        }
     }
 
     console.log('✅ Public configuration served successfully');
