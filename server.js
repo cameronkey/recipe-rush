@@ -97,13 +97,18 @@ const transporter = nodemailer.createTransport({
 
 // Test email configuration on startup (only in development, not in tests)
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
-    transporter.verify(function(error, success) {
-        if (error) {
-            console.error('❌ Email configuration error:', error);
-        } else {
-            console.log('✅ Email configuration verified successfully');
-        }
-    });
+    // Make email verification non-blocking to prevent startup failures
+    setTimeout(() => {
+        transporter.verify(function(error, success) {
+            if (error) {
+                console.warn('⚠️ Email configuration warning:', error.message);
+                console.warn('   This may be due to network issues or missing email credentials.');
+                console.warn('   Email functionality will be limited until this is resolved.');
+            } else {
+                console.log('✅ Email configuration verified successfully');
+            }
+        });
+    }, 1000); // Delay verification to not block server startup
 }
 
 // Generate secure download token
@@ -504,9 +509,13 @@ app.get('/api/config', (req, res) => {
         // In development, warn about missing config but don't fail
         if (!config.stripe.publishableKey) {
             console.warn('⚠️ STRIPE_PUBLISHABLE_KEY not configured (development mode)');
+            // Provide a placeholder to prevent frontend errors
+            config.stripe.publishableKey = 'pk_test_placeholder_for_development';
         }
         if (!config.emailjs.publicKey) {
             console.warn('⚠️ EMAILJS_PUBLIC_KEY not configured (development mode)');
+            // Provide a placeholder to prevent frontend errors
+            config.emailjs.publicKey = 'placeholder_for_development';
         }
     }
 
