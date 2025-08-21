@@ -181,7 +181,8 @@ function handleContactForm(event) {
 
 // Checkout functionality
 function showCheckoutForm() {
-    if (window.RecipeRushCart.getCount() === 0) {
+    const cart = window.RecipeRushCart.getItems();
+    if (!cart || cart.length === 0) {
         showNotification('Your cart is empty!', 'error');
         return;
     }
@@ -193,7 +194,7 @@ function showCheckoutForm() {
     const checkoutTotal = document.getElementById('checkoutTotal');
 
     checkoutItems.innerHTML = '';
-    window.RecipeRushCart.getItems().forEach(item => {
+    cart.forEach(item => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'checkout-item';
         itemDiv.innerHTML = `
@@ -206,7 +207,7 @@ function showCheckoutForm() {
         checkoutItems.appendChild(itemDiv);
     });
 
-    const total = window.RecipeRushCart.getTotal();
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     checkoutTotal.textContent = `£${total.toFixed(2)}`;
 
     // Close cart and show checkout
@@ -297,6 +298,9 @@ async function processPayment(firstName, lastName, email) {
 
         showNotification('Creating checkout session...', 'info');
 
+        // Get cart items from cart manager
+        const cart = window.RecipeRushCart.getItems();
+        
         // Prepare cart items for Stripe
         const items = cart.map(item => ({
             name: item.name,

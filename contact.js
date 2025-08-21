@@ -131,7 +131,8 @@ function closeMobileMenu() {
 
 // Checkout functionality
 function showCheckoutForm() {
-    if (cart.length === 0) {
+    const cart = window.RecipeRushCart.getItems();
+    if (!cart || cart.length === 0) {
         showNotification('Your cart is empty!', 'error', 3000);
         return;
     }
@@ -259,6 +260,7 @@ function handleCheckoutSubmit(event) {
     }
 
     // Check if cart has items
+    const cart = window.RecipeRushCart.getItems();
     if (!cart || cart.length === 0) {
         showNotification('Your cart is empty!', 'error', 3000);
         submitButton.disabled = false;
