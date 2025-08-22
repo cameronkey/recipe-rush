@@ -82,7 +82,7 @@ function closeMobileMenu() {
 let cartModal, cartCount, cartItems, cartTotal;
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
+function initializeApp() {
     try {
         // Initialize DOM elements first
         cartModal = document.getElementById('cartModal');
@@ -141,7 +141,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
     }
-});
+}
+
+// Run initialization immediately since config-loader.js handles the timing
+initializeApp();
 
 // Setup event listeners
 function setupEventListeners() {
@@ -193,7 +196,19 @@ function updateQuantity(productId, newQuantity) {
 
 // Cart display is now handled by RecipeRushCart manager
 function updateCartDisplay() {
-    window.RecipeRushCart.updateDisplay();
+function updateCartDisplay() {
+    if (window.RecipeRushCart && typeof window.RecipeRushCart.updateDisplay === 'function') {
+        window.RecipeRushCart.updateDisplay();
+    } else {
+        console.warn('⚠️ RecipeRushCart not available yet, skipping cart display update');
+        // Retry after a short delay
+        setTimeout(() => {
+            if (window.RecipeRushCart && typeof window.RecipeRushCart.updateDisplay === 'function') {
+                console.log('✅ RecipeRushCart now available, updating display');
+                window.RecipeRushCart.updateDisplay();
+            }
+        }, 500);
+    }
 }
 
 // Cart storage is now handled by RecipeRushCart manager
@@ -457,7 +472,18 @@ function showNotification(message, type = 'info', duration = 4000) {
     const closeButton = document.createElement('button');
     closeButton.className = 'notification-close';
     closeButton.textContent = '×';
-    closeButton.onclick = function() { this.parentElement.remove(); };
+    
+    // Create a named handler function to avoid memory leaks
+    const closeHandler = function() {
+        const parentElement = this.parentElement;
+        if (parentElement) {
+            parentElement.remove();
+        }
+        // Clean up the event listener to prevent memory leaks
+        closeButton.removeEventListener('click', closeHandler);
+    };
+    
+    closeButton.addEventListener('click', closeHandler);
 
     notification.appendChild(iconSpan);
     notification.appendChild(messageSpan);

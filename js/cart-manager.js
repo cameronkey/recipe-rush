@@ -188,6 +188,9 @@
             if (cartTotal) {
                 cartTotal.textContent = `£${this.getTotal().toFixed(2)}`;
             }
+
+            // Return whether all target DOM nodes were found
+            return !!(cartCount && cartItems && cartTotal);
         },
 
         // Clear cart
@@ -206,26 +209,28 @@
     // Export cart for external access (maintains backward compatibility)
     window.RecipeRushCart = cart;
 
-    // Deferred initialization function
-    function initializeCart() {
-        console.log('🛒 Initializing cart manager...');
-        
+    // Initialize cart immediately since config-loader.js handles the timing
+    cart.init();
+
+    // Check if updateDisplay found all target DOM nodes, and if not, add DOM readiness fallback
+    const domNodesFound = cart.updateDisplay();
+    if (!domNodesFound) {
+        // One-time DOMContentLoaded fallback for cases where target nodes aren't ready yet
+        const domReadyFallback = () => {
+            cart.updateDisplay();
+            // Remove the listener after first use
+            document.removeEventListener('DOMContentLoaded', domReadyFallback);
+        };
+
+        // Check document.readyState first, then attach listener if needed
         if (document.readyState === 'loading') {
-            console.log('🔄 DOM still loading, waiting for DOMContentLoaded...');
-            document.addEventListener('DOMContentLoaded', () => {
-                console.log('✅ DOM ready, initializing cart...');
-                cart.init();
-            });
+            document.addEventListener('DOMContentLoaded', domReadyFallback);
         } else {
-            // DOM is already ready
-            console.log('✅ DOM already ready, initializing cart immediately...');
-            cart.init();
+            // DOM is already ready, try updateDisplay one more time
+            cart.updateDisplay();
         }
     }
 
-    // Initialize cart with proper timing
-    initializeCart();
-    
     // Log the cart availability for debugging
     console.log('🛒 Cart manager loaded, RecipeRushCart available:', !!window.RecipeRushCart);
     console.log('🛒 Cart manager loaded, RecipeRushApp.cart available:', !!window.RecipeRushApp?.cart);
