@@ -28,6 +28,11 @@ function openMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
     const burgerButton = document.querySelector('.burger-menu');
 
+    if (!mobileMenu) {
+        console.warn('Mobile menu element not found');
+        return;
+    }
+
     mobileMenu.style.display = 'block';
 
     // Trigger animation
@@ -42,6 +47,15 @@ function openMobileMenu() {
 
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
+}
+
+function toggleMobileMenu() {
+    const mobileMenu = document.querySelector('.mobile-menu');
+    if (mobileMenu.classList.contains('active')) {
+        closeMobileMenu();
+    } else {
+        openMobileMenu();
+    }
 }
 
 function closeMobileMenu() {
@@ -65,10 +79,23 @@ function closeMobileMenu() {
 }
 
 // DOM elements
-const cartModal = document.getElementById('cartModal');
-const cartCount = document.getElementById('cartCount');
-const cartItems = document.getElementById('cartItems');
-const cartTotal = document.getElementById('cartTotal');
+// DOM elements - will be initialized after DOM is ready
+let cartModal, cartCount, cartItems, cartTotal;
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM elements
+    cartModal = document.getElementById('cartModal');
+    cartCount = document.getElementById('cartCount');
+    cartItems = document.getElementById('cartItems');
+    cartTotal = document.getElementById('cartTotal');
+    
+    try {
+        // ... existing initialization logic ...
+    } catch (error) {
+        console.error('Initialization failed:', error);
+    }
+});
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {

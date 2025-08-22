@@ -33,7 +33,7 @@
 - [ ] Switch Stripe dashboard to **Live Mode**
 - [ ] Copy your **Live Secret Key** (starts with `sk_live_`)
 - [ ] Copy your **Live Webhook Secret** (starts with `whsec_`)
-- [ ] Update webhook endpoint to: `https://reciperush-backend.onrender.com/webhook/stripe`
+- [ ] Update webhook endpoint to: `${{RENDER_EXTERNAL_URL}}/webhook/stripe` (auto-provided by Render)
 
 ### 2. Set Up Render Environment Variables
 Run this command to get your environment variables:
@@ -44,7 +44,7 @@ Run this command to get your environment variables:
 Then set these in your Render dashboard:
 - [ ] `NODE_ENV=production`
 - [ ] `PORT=10000`
-- [ ] `BASE_URL=https://reciperush-backend.onrender.com`
+- [ ] `BASE_URL=${{RENDER_EXTERNAL_URL}}` (auto-provided by Render)
 - [ ] `STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_key`
 - [ ] `STRIPE_SECRET_KEY=sk_live_your_actual_key`
 - [ ] `STRIPE_WEBHOOK_SECRET=whsec_your_actual_secret`

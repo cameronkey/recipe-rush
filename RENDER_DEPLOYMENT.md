@@ -53,7 +53,7 @@ git push origin main
    EMAIL_PASS=your_gmail_app_password
    JWT_SECRET=your_random_jwt_secret
    SESSION_SECRET=your_random_session_secret
-   BASE_URL=https://reciperush-backend.onrender.com
+   BASE_URL=${{RENDER_EXTERNAL_URL}}
    ```
 
 5. **Deploy**
@@ -85,7 +85,7 @@ git push origin main
 
 2. **Add Endpoint**
    ```
-   URL: https://reciperush-backend.onrender.com/webhook/stripe
+   URL: ${{RENDER_EXTERNAL_URL}}/webhook/stripe
    Events: checkout.session.completed
    ```
 
@@ -97,7 +97,7 @@ git push origin main
 
 1. **Backend Health Check**
    ```
-   https://reciperush-backend.onrender.com/health
+   ${{RENDER_EXTERNAL_URL}}/health
    ```
 
 2. **Frontend Access**
@@ -122,7 +122,7 @@ git push origin main
 | `EMAIL_PASS` | Gmail app password | `abcd efgh ijkl mnop` |
 | `JWT_SECRET` | JWT signing secret | `random_string_64_chars` |
 | `SESSION_SECRET` | Session encryption | `random_string_64_chars` |
-| `BASE_URL` | Backend service URL | `https://reciperush-backend.onrender.com` |
+| `BASE_URL` | Backend service URL | `${{RENDER_EXTERNAL_URL}}` (auto-provided by Render) |
 
 ## 🚨 Important Notes
 

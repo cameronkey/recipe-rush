@@ -32,7 +32,7 @@ Replace `pk_live_your_actual_live_publishable_key_here` with your actual live ke
 ### 3. Stripe Production Setup
 
 1. **Switch to Live Mode** in your Stripe dashboard
-2. **Update Webhook Endpoint** to: `https://reciperush-backend.onrender.com/webhook/stripe`
+2. **Update Webhook Endpoint** to: `${{RENDER_EXTERNAL_URL}}/webhook/stripe` (auto-provided by Render)
 3. **Copy Live Keys** from Stripe dashboard
 4. **Test Live Payment** with a small amount
 
@@ -62,18 +62,18 @@ Add all environment variables from the checklist above in Render dashboard.
 
 ### 1. Health Check
 ```bash
-curl https://reciperush-backend.onrender.com/health
+curl ${{RENDER_EXTERNAL_URL}}/health
 ```
 
 ### 2. Test Email System
 ```bash
-curl https://reciperush-backend.onrender.com/test-email
+curl ${{RENDER_EXTERNAL_URL}}/test-email
 ```
 **⚠️ PRODUCTION SECURITY**: This endpoint must be disabled or protected in production. Recommended action: Remove the route in production config or gate behind environment-variable-enabled feature flag.
 
 ### 3. Test Webhook
 ```bash
-curl https://reciperush-backend.onrender.com/test-webhook
+curl ${{RENDER_EXTERNAL_URL}}/test-webhook
 ```
 **⚠️ PRODUCTION SECURITY**: This endpoint must be disabled or protected in production. Recommended action: Remove the route in production config or enable authentication middleware.
 

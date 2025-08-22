@@ -11,7 +11,11 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: BASE_URL
+        value: ${{RENDER_EXTERNAL_URL}}
       - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
@@ -19,10 +23,26 @@ services:
         sync: false
       - key: EMAIL_PASS
         sync: false
+      - key: EMAILJS_PUBLIC_KEY
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: SESSION_SECRET
         sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: LOG_LEVEL
+        value: error
+      - key: ENABLE_DEBUG
+        value: false
+      - key: MAX_FILE_SIZE
+        value: 10485760
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: ENABLE_TEST_ENDPOINTS
+        value: false
     healthCheckPath: /health
     autoDeploy: true
 

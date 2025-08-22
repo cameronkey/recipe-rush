@@ -51,13 +51,8 @@ async function getEmailJSConfig() {
     } catch (error) {
         console.error('❌ Failed to load EmailJS configuration:', error);
 
-        // Fallback to hardcoded key if dynamic loading fails
-        // This ensures the form still works even if config endpoint is down
-        console.warn('⚠️ Falling back to hardcoded EmailJS key for form functionality');
-        emailjsConfig = {
-            publicKey: "3yTB8siz9rVmr9gRu"
-        };
-        return emailjsConfig;
+        // Don't fallback to hardcoded keys - let the application handle missing config gracefully
+        throw new Error('EmailJS configuration is required and could not be loaded');
     }
 }
 
@@ -230,7 +225,6 @@ function handleCheckoutSubmit(event) {
     // Disable button and show spinner
     submitButton.disabled = true;
     buttonText.textContent = 'Processing...';
-    buttonText.classList.add('hidden');
     spinner.classList.remove('hidden');
 
     // Get form data
@@ -321,18 +315,18 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
                 method: 'POST',
                 headers: requestHeaders,
                 body: JSON.stringify(requestBody),
-                signal: abortController.signal
+                signal: abortController.signal,
+                credentials: 'same-origin'
             });
 
             // Clear timeout on success
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                // Don't retry on client errors (4xx)
-                if (response.status >= 400 && response.status < 500) {
-                    throw new Error(`Client error: ${response.status} - ${response.statusText}`);
-                }
-                throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+                const err = new Error(`HTTP ${response.status} ${response.statusText}`);
+                // carry status to catch/final handling
+                err.status = response.status;
+                throw err;
             }
 
             const data = await response.json();
@@ -345,8 +339,13 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
             } else if (data.sessionId) {
                 // Use Stripe client-side redirect flow for backward compatibility
                 if (window.stripe) {
-                    window.stripe.redirectToCheckout({ sessionId: data.sessionId });
-                    return;
+                    const result = await window.stripe.redirectToCheckout({ sessionId: data.sessionId });
+                    if (result && result.error) {
+                        const err = new Error(result.error.message || 'Stripe redirect failed');
+                        err.status = 499; // client-side redirect failure
+                        throw err;
+                    }
+                    return; // navigation initiated
                 } else {
                     throw new Error('Stripe library not loaded. Please refresh the page and try again.');
                 }
@@ -366,7 +365,7 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
                 if (attempt === FETCH_CONFIG.MAX_RETRIES) {
                     throw new Error(`Request timed out after ${FETCH_CONFIG.TIMEOUT_MS / 1000} seconds. Please check your connection and try again.`);
                 }
-            } else if (error.message.includes('Client error: 4')) {
+            } else if (typeof error.status === 'number' && error.status >= 400 && error.status < 500) {
                 console.log(`Client error on attempt ${attempt + 1}, not retrying:`, error.message);
                 throw error;
             } else if (attempt < FETCH_CONFIG.MAX_RETRIES) {
@@ -393,9 +392,9 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
     
     if (lastError.name === 'AbortError') {
         errorMessage = `Request timed out after ${FETCH_CONFIG.TIMEOUT_MS / 1000} seconds. Please check your connection and try again.`;
-    } else if (lastError.message.includes('Client error: 4')) {
+    } else if (typeof lastError.status === 'number' && lastError.status >= 400 && lastError.status < 500) {
         errorMessage = 'Invalid request. Please check your information and try again.';
-    } else if (lastError.message.includes('Server error: 5')) {
+    } else if (typeof lastError.status === 'number' && lastError.status >= 500) {
         errorMessage = 'Server error. Please try again later.';
     } else if (lastError.message.includes('Network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
@@ -408,6 +407,11 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
     const buttonText = document.getElementById('button-text');
     const spinner = document.getElementById('spinner');
 
+    submitButton.disabled = false;
+    buttonText.textContent = 'Proceed to Secure Checkout';
+    buttonText.classList.remove('hidden');
+    spinner.classList.add('hidden');
+}
     submitButton.disabled = false;
     buttonText.textContent = 'Proceed to Secure Checkout';
     buttonText.classList.remove('hidden');
