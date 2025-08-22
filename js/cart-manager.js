@@ -200,24 +200,34 @@
     };
 
     // Assign cart to namespace
+    window.RecipeRushApp = window.RecipeRushApp || {};
     window.RecipeRushApp.cart = cart;
+
+    // Export cart for external access (maintains backward compatibility)
+    window.RecipeRushCart = cart;
 
     // Deferred initialization function
     function initializeCart() {
+        console.log('🛒 Initializing cart manager...');
+        
         if (document.readyState === 'loading') {
+            console.log('🔄 DOM still loading, waiting for DOMContentLoaded...');
             document.addEventListener('DOMContentLoaded', () => {
+                console.log('✅ DOM ready, initializing cart...');
                 cart.init();
             });
         } else {
             // DOM is already ready
+            console.log('✅ DOM already ready, initializing cart immediately...');
             cart.init();
         }
     }
 
     // Initialize cart with proper timing
     initializeCart();
-
-    // Export cart for external access (maintains backward compatibility)
-    window.RecipeRushCart = window.RecipeRushApp.cart;
+    
+    // Log the cart availability for debugging
+    console.log('🛒 Cart manager loaded, RecipeRushCart available:', !!window.RecipeRushCart);
+    console.log('🛒 Cart manager loaded, RecipeRushApp.cart available:', !!window.RecipeRushApp?.cart);
 
 })();

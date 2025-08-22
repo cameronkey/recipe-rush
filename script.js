@@ -78,29 +78,43 @@ function closeMobileMenu() {
     document.body.style.overflow = 'auto';
 }
 
-// DOM elements
 // DOM elements - will be initialized after DOM is ready
 let cartModal, cartCount, cartItems, cartTotal;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize DOM elements
-    cartModal = document.getElementById('cartModal');
-    cartCount = document.getElementById('cartCount');
-    cartItems = document.getElementById('cartItems');
-    cartTotal = document.getElementById('cartTotal');
-    
     try {
-        // ... existing initialization logic ...
-    } catch (error) {
-        console.error('Initialization failed:', error);
-    }
-});
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        // Validate configuration first
+        // Initialize DOM elements first
+        cartModal = document.getElementById('cartModal');
+        cartCount = document.getElementById('cartCount');
+        cartItems = document.getElementById('cartItems');
+        cartTotal = document.getElementById('cartTotal');
+        
+        // Validate that required elements exist
+        if (!cartModal) {
+            console.error('❌ Cart modal element not found!');
+            return;
+        }
+        
+        if (!cartCount) {
+            console.warn('⚠️ Cart count element not found');
+        }
+        
+        if (!cartItems) {
+            console.warn('⚠️ Cart items element not found');
+        }
+        
+        if (!cartTotal) {
+            console.warn('⚠️ Cart total element not found');
+        }
+        
+        console.log('✅ DOM elements initialized successfully');
+        console.log('🛒 Cart modal found:', !!cartModal);
+        console.log('🛒 Cart count found:', !!cartCount);
+        console.log('🛒 Cart items found:', !!cartItems);
+        console.log('🛒 Cart total found:', !!cartTotal);
+        
+        // Validate configuration
         validateConfiguration();
 
         // Check if Stripe is available (only log if we're on a page that needs it)
@@ -113,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-                // Cart is now managed by RecipeRushCart manager
+        // Cart is now managed by RecipeRushCart manager
         updateCartDisplay();
         setupEventListeners();
 
@@ -187,10 +201,35 @@ function updateCartDisplay() {
 
 // Modal functions
 function openCart() {
+    if (!cartModal) {
+        console.warn('⚠️ Cart modal not initialized yet, waiting for initialization...');
+        // Wait for cart to be initialized
+        const checkInterval = setInterval(() => {
+            if (cartModal) {
+                clearInterval(checkInterval);
+                console.log('✅ Cart modal now available, opening cart...');
+                cartModal.style.display = 'block';
+            }
+        }, 100);
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            if (!cartModal) {
+                console.error('❌ Cart modal failed to initialize after 5 seconds');
+                alert('Cart system is still loading. Please refresh the page and try again.');
+            }
+        }, 5000);
+        return;
+    }
     cartModal.style.display = 'block';
 }
 
 function closeCart() {
+    if (!cartModal) {
+        console.error('❌ Cart modal not initialized. Please refresh the page.');
+        return;
+    }
     cartModal.style.display = 'none';
 }
 
