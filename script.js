@@ -28,11 +28,6 @@ function openMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
     const burgerButton = document.querySelector('.burger-menu');
 
-    if (!mobileMenu) {
-        console.warn('Mobile menu element not found');
-        return;
-    }
-
     mobileMenu.style.display = 'block';
 
     // Trigger animation
@@ -47,15 +42,6 @@ function openMobileMenu() {
 
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
-}
-
-function toggleMobileMenu() {
-    const mobileMenu = document.querySelector('.mobile-menu');
-    if (mobileMenu.classList.contains('active')) {
-        closeMobileMenu();
-    } else {
-        openMobileMenu();
-    }
 }
 
 function closeMobileMenu() {
@@ -78,42 +64,16 @@ function closeMobileMenu() {
     document.body.style.overflow = 'auto';
 }
 
-// DOM elements - will be initialized after DOM is ready
-let cartModal, cartCount, cartItems, cartTotal;
+// DOM elements
+const cartModal = document.getElementById('cartModal');
+const cartCount = document.getElementById('cartCount');
+const cartItems = document.getElementById('cartItems');
+const cartTotal = document.getElementById('cartTotal');
 
 // Initialize the application
-function initializeApp() {
+document.addEventListener('DOMContentLoaded', function() {
     try {
-        // Initialize DOM elements first
-        cartModal = document.getElementById('cartModal');
-        cartCount = document.getElementById('cartCount');
-        cartItems = document.getElementById('cartItems');
-        cartTotal = document.getElementById('cartTotal');
-        
-        // Validate that required elements exist
-        if (!cartModal) {
-            console.error('❌ Cart modal element not found!');
-        }
-        
-        if (!cartCount) {
-            console.warn('⚠️ Cart count element not found');
-        }
-        
-        if (!cartItems) {
-            console.warn('⚠️ Cart items element not found');
-        }
-        
-        if (!cartTotal) {
-            console.warn('⚠️ Cart total element not found');
-        }
-        
-        console.log('✅ DOM elements initialized successfully');
-        console.log('🛒 Cart modal found:', !!cartModal);
-        console.log('🛒 Cart count found:', !!cartCount);
-        console.log('🛒 Cart items found:', !!cartItems);
-        console.log('🛒 Cart total found:', !!cartTotal);
-        
-        // Validate configuration
+        // Validate configuration first
         validateConfiguration();
 
         // Check if Stripe is available (only log if we're on a page that needs it)

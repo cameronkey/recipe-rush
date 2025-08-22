@@ -30,32 +30,14 @@ if (process.env.SENTRY_DSN) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Helper function to get base URL with fallback logic
-function getBaseUrl(req) {
-    // Priority: 1. Environment variable, 2. Request-derived, 3. Localhost fallback
-    if (process.env.BASE_URL) {
-        return process.env.BASE_URL;
-    }
-
-    if (req) {
-        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-        const host = req.headers['x-forwarded-host'] || req.get('host') || req.headers.host;
-        if (host) {
-            return `${protocol}://${host}`;
-        }
-    }
-
-    return `http://localhost:${PORT}`;
-}
-
 // Production security middleware
 if (process.env.NODE_ENV === 'production') {
     // Rate limiting for production - configurable via environment variables
-    const rateLimitWindowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000; // 15 minutes default
-    const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+    const rateLimitWindowMinutes = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES) || 15;
+    const rateLimitMax = parseInt(process.env.RATE_LIMIT_MAX) || 100;
 
     const limiter = rateLimit({
-        windowMs: rateLimitWindowMs, // Use milliseconds directly
+        windowMs: rateLimitWindowMinutes * 60 * 1000, // Convert minutes to milliseconds
         max: rateLimitMax, // limit each IP to max requests per windowMs
         message: 'Too many requests from this IP, please try again later.'
     });
@@ -117,7 +99,7 @@ const transporter = nodemailer.createTransport({
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     // Make email verification non-blocking to prevent startup failures
     setTimeout(() => {
-        transporter.verify(function(error, _success) {
+        transporter.verify(function(error, success) {
             if (error) {
                 console.warn('⚠️ Email configuration warning:', error.message);
                 console.warn('   This may be due to network issues or missing email credentials.');
@@ -210,8 +192,8 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Send e-book delivery email
-async function sendEbookEmail(customerEmail, customerName, downloadToken, orderId, req) {
-    const downloadUrl = `${getBaseUrl(req)}/download/${downloadToken}`;
+async function sendEbookEmail(customerEmail, customerName, downloadToken, orderId) {
+    const downloadUrl = `${process.env.BASE_URL}/download/${downloadToken}`;
 
     console.log('📧 Preparing e-book email...');
     console.log('   From:', process.env.EMAIL_USER);
@@ -317,7 +299,7 @@ app.post('/create-checkout-session', async (req, res) => {
             return res.status(403).json({ error: 'Invalid CSRF token' });
         }
 
-        const { items, customerEmail, customerName } = req.body;
+        const { items, customerEmail, customerName, total } = req.body;
 
         // Validate required fields
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -354,8 +336,8 @@ app.post('/create-checkout-session', async (req, res) => {
                 quantity: item.quantity,
             })),
             mode: 'payment',
-            success_url: `${getBaseUrl(req)}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${getBaseUrl(req)}/cancel`,
+            success_url: `${process.env.BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.BASE_URL}/cancel`,
             customer_email: customerEmail,
             metadata: {
                 customerName: customerName,
@@ -409,7 +391,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
         // Send e-book delivery email
         console.log('📤 Attempting to send e-book email...');
-        const emailSent = await sendEbookEmail(customerEmail, customerName, downloadToken, orderId, req);
+        const emailSent = await sendEbookEmail(customerEmail, customerName, downloadToken, orderId);
 
         if (emailSent) {
             console.log(`✅ Order ${orderId} completed successfully. E-book sent to ${customerEmail}`);
@@ -527,7 +509,8 @@ app.get('/api/config', (req, res) => {
         // In development, warn about missing config but don't fail
         if (!config.stripe.publishableKey) {
             console.warn('⚠️ STRIPE_PUBLISHABLE_KEY not configured (development mode)');
-            // Don't provide placeholder in production - let frontend handle missing config
+            // Provide a placeholder to prevent frontend errors
+            config.stripe.publishableKey = 'pk_test_placeholder_for_development';
         }
         if (!config.emailjs.publicKey) {
             console.warn('⚠️ EMAILJS_PUBLIC_KEY not configured (development mode)');
@@ -658,8 +641,7 @@ app.get('/test-webhook', async (req, res) => {
             mockSession.customer_details.email, 
             mockSession.customer_details.name, 
             downloadToken, 
-            mockSession.id,
-            req
+            mockSession.id
         );
 
         if (emailSent) {
@@ -670,7 +652,7 @@ app.get('/test-webhook', async (req, res) => {
                 orderId: mockSession.id,
                 downloadToken: downloadToken,
                 emailSent: true,
-                downloadUrl: `${getBaseUrl(req)}/download/${downloadToken}`
+                downloadUrl: `${process.env.BASE_URL}/download/${downloadToken}`
             });
         } else {
             console.error(`❌ Failed to send e-book for test order ${mockSession.id}`);
@@ -764,7 +746,7 @@ if (process.env.NODE_ENV !== 'test') {
             console.log(`💳 Stripe webhooks enabled`);
             console.log(`📧 Email delivery configured`);
             console.log(`🔒 Production security enabled`);
-            console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Using RENDER_EXTERNAL_URL'}`);
+            console.log(`🌐 Base URL: ${process.env.BASE_URL}`);
         } else {
             console.log(`🚀 RecipeRush server running on port ${PORT}`);
             console.log(`📚 E-book delivery system ready`);
@@ -775,7 +757,7 @@ if (process.env.NODE_ENV !== 'test') {
 
             // Verify environment variables
             console.log(`🔑 Stripe Key: ${process.env.STRIPE_SECRET_KEY ? '✅ Loaded' : '❌ Missing'}`);
-            console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Using RENDER_EXTERNAL_URL or request-derived'}`);
+            console.log(`🌐 Base URL: ${process.env.BASE_URL || 'Not set'}`);
             console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ Configured' : '❌ Missing'}`);
         }
     });
