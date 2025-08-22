@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate that required elements exist
         if (!cartModal) {
             console.error('❌ Cart modal element not found!');
-            return;
         }
         
         if (!cartCount) {
