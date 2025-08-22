@@ -41,6 +41,15 @@ if (process.env.NODE_ENV === 'production') {
         max: rateLimitMax, // limit each IP to max requests per windowMs
         message: 'Too many requests from this IP, please try again later.'
     });
+    // CORS must come BEFORE rate limiting to allow cross-origin requests
+    app.use(cors({
+        origin: process.env.NODE_ENV === 'production' 
+            ? ['https://reciperush-frontend.onrender.com', 'https://reciperush.uk']
+            : true,
+        credentials: true
+    }));
+    app.use(express.json({ limit: '10mb' }));
+
     app.use(limiter);
 
     // Security headers
@@ -70,15 +79,6 @@ const csrfLimiter = rateLimit({
         });
     }
 });
-
-// Middleware
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-        ? ['https://reciperush-frontend.onrender.com', 'https://reciperush.uk']
-        : true,
-    credentials: true
-}));
-app.use(express.json({ limit: '10mb' }));
 
 // Store for download tokens (in production, use a database)
 const downloadTokens = new Map();
