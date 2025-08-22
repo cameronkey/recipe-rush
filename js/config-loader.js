@@ -87,7 +87,7 @@
         try {
             console.log('🔄 Loading RecipeRush configuration...');
 
-            const response = await fetch('/api/config', {
+            const response = await fetch('https://recipe-rush.onrender.com/api/config', {
                 signal: controller.signal
             });
             if (!response.ok) {
