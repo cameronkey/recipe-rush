@@ -438,7 +438,7 @@ app.get('/download/:token', (req, res) => {
     if (tokenData.downloads >= tokenData.maxDownloads) {
         return res.status(429).send('Maximum download limit reached.');
     }
-    
+
     const ebookPath = path.join(__dirname, 'recipe-rush-lean-and-loaded.pdf');
     res.download(ebookPath, 'RecipeRush-Lean-and-Loaded.pdf', (err) => {
         if (err) {

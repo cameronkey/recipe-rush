@@ -64,16 +64,42 @@ function closeMobileMenu() {
     document.body.style.overflow = 'auto';
 }
 
-// DOM elements
-const cartModal = document.getElementById('cartModal');
-const cartCount = document.getElementById('cartCount');
-const cartItems = document.getElementById('cartItems');
-const cartTotal = document.getElementById('cartTotal');
+// DOM elements - will be initialized after DOM is ready
+let cartModal, cartCount, cartItems, cartTotal;
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
+function initializeApp() {
     try {
-        // Validate configuration first
+        // Initialize DOM elements first
+        cartModal = document.getElementById('cartModal');
+        cartCount = document.getElementById('cartCount');
+        cartItems = document.getElementById('cartItems');
+        cartTotal = document.getElementById('cartTotal');
+
+        // Validate that required elements exist
+        if (!cartModal) {
+            console.error('❌ Cart modal element not found!');
+        }
+
+        if (!cartCount) {
+            console.warn('⚠️ Cart count element not found');
+        }
+
+        if (!cartItems) {
+            console.warn('⚠️ Cart items element not found');
+        }
+
+        if (!cartTotal) {
+            console.warn('⚠️ Cart total element not found');
+        }
+
+        console.log('✅ DOM elements initialized successfully');
+        console.log('🛒 Cart modal found:', !!cartModal);
+        console.log('🛒 Cart count found:', !!cartCount);
+        console.log('🛒 Cart items found:', !!cartItems);
+        console.log('🛒 Cart total found:', !!cartTotal);
+
+        // Validate configuration
         validateConfiguration();
 
         // Check if Stripe is available (only log if we're on a page that needs it)
@@ -103,8 +129,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 
-// Run initialization immediately since config-loader.js handles the timing
-initializeApp();
+// Initialize the application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM is already ready, initialize immediately
+    initializeApp();
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -155,7 +186,6 @@ function updateQuantity(productId, newQuantity) {
 }
 
 // Cart display is now handled by RecipeRushCart manager
-function updateCartDisplay() {
 function updateCartDisplay() {
     if (window.RecipeRushCart && typeof window.RecipeRushCart.updateDisplay === 'function') {
         window.RecipeRushCart.updateDisplay();

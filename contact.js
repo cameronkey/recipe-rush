@@ -306,7 +306,6 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
     };
 
     let lastError;
-    
     for (let attempt = 0; attempt <= FETCH_CONFIG.MAX_RETRIES; attempt++) {
         // Create a new AbortController for each attempt
         const abortController = new AbortController();
@@ -316,7 +315,7 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
 
         try {
             console.log(`Attempt ${attempt + 1}/${FETCH_CONFIG.MAX_RETRIES + 1} to create checkout session`);
-            
+
             const response = await fetch('/create-checkout-session', {
                 method: 'POST',
                 headers: requestHeaders,
@@ -336,7 +335,7 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
             }
 
             const data = await response.json();
-            
+
             // Handle successful response
             if (data.url) {
                 // Prefer data.url and redirect to it
@@ -357,9 +356,9 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
         } catch (error) {
             // Clear timeout on error
             clearTimeout(timeoutId);
-            
+
             lastError = error;
-            
+
             // Don't retry on client errors (4xx) or AbortError (timeout)
             if (error.name === 'AbortError') {
                 console.log(`Attempt ${attempt + 1} timed out after ${FETCH_CONFIG.TIMEOUT_MS}ms`);
@@ -375,12 +374,12 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
                     FETCH_CONFIG.BASE_DELAY_MS * Math.pow(2, attempt),
                     FETCH_CONFIG.MAX_DELAY_MS
                 );
-                
+
                 console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms:`, error.message);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
             }
-            
+
             // If we've exhausted all retries or hit a non-retryable error
             break;
         }
@@ -388,9 +387,9 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
 
     // Handle final failure after all retries
     console.error('Payment setup failed after all retry attempts:', lastError);
-    
+
     let errorMessage = 'Failed to create checkout session after multiple attempts. Please try again.';
-    
+
     if (lastError.name === 'AbortError') {
         errorMessage = `Request timed out after ${FETCH_CONFIG.TIMEOUT_MS / 1000} seconds. Please check your connection and try again.`;
     } else if (lastError.message.includes('Client error: 4')) {
@@ -417,7 +416,7 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
 document.addEventListener('DOMContentLoaded', function() {
     setupContactForm();
     setupFormValidation();
-    
+
     // Pre-initialize EmailJS for better user experience
     initializeEmailJS().catch(error => {
         console.warn('⚠️ EmailJS pre-initialization failed (will retry on form submission):', error);
@@ -592,7 +591,7 @@ async function submitContactForm(data) {
     } catch (error) {
         console.error('❌ EmailJS initialization failed:', error);
         showNotification('Email service configuration error. Please try again later.', 'error', 5000);
-        
+
         // Reset button
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
