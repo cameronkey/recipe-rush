@@ -22,12 +22,12 @@ async function getEmailJSConfig() {
     }
 
     try {
-        console.log('🔄 Fetching EmailJS configuration...');
+        // Fetching EmailJS configuration
 
         // Check if config is already available globally from config-loader
         if (window.RECIPE_RUSH_CONFIG && window.RECIPE_RUSH_CONFIG.emailjs) {
             emailjsConfig = window.RECIPE_RUSH_CONFIG.emailjs;
-            console.log('✅ EmailJS config loaded from global config');
+            // EmailJS config loaded from global config
             return emailjsConfig;
         }
 
@@ -45,7 +45,7 @@ async function getEmailJSConfig() {
 
         // Cache the config
         emailjsConfig = config.emailjs;
-        console.log('✅ EmailJS config fetched and cached successfully');
+        // EmailJS config fetched and cached successfully
         return emailjsConfig;
 
     } catch (error) {
@@ -63,7 +63,7 @@ async function getEmailJSConfig() {
 
 async function initializeEmailJS() {
     if (emailjsInitialized) {
-        console.log('✅ EmailJS already initialized');
+        // EmailJS already initialized
         return;
     }
 
@@ -77,7 +77,7 @@ async function initializeEmailJS() {
         // Initialize EmailJS with the fetched key
         emailjs.init(config.publicKey);
         emailjsInitialized = true;
-        console.log('✅ EmailJS initialized successfully with dynamic key');
+        // EmailJS initialized successfully with dynamic key
 
     } catch (error) {
         console.error('❌ EmailJS initialization failed:', error);
@@ -198,21 +198,21 @@ function initializeStripe() {
         // Initialize Stripe with configuration from server
         window.stripe = Stripe(window.RECIPE_RUSH_CONFIG.stripe.publishableKey);
 
-        console.log('Stripe instance created successfully');
+        // Stripe instance created successfully
 
         // Handle form submission
         const checkoutForm = document.getElementById('checkoutForm');
         if (checkoutForm) {
-            console.log('Checkout form found, setting up event listener...');
+            // Checkout form found, setting up event listener
             // Remove existing listener to prevent duplicates
             checkoutForm.removeEventListener('submit', handleCheckoutSubmit);
             checkoutForm.addEventListener('submit', handleCheckoutSubmit);
-            console.log('Event listener attached successfully');
+            // Event listener attached successfully
         } else {
             console.error('Checkout form not found!');
         }
 
-        console.log('Stripe initialized successfully - checkout form ready');
+        // Stripe initialized successfully - checkout form ready
 
     } catch (error) {
         console.error('Error initializing Stripe:', error);

@@ -1,0 +1,41 @@
+# Test files and directories
+tests/
+coverage/
+*.test.js
+*.spec.js
+
+# Development configuration
+.eslintrc.js
+.prettierrc
+jest.config.js
+
+# Development dependencies (these will be installed by npm install)
+node_modules/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Development scripts
+setup-production.sh
+rotate-secrets.sh
+security-check.js
+
+# Documentation (keep for reference but don't deploy)
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+*.log

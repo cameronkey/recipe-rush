@@ -20,7 +20,7 @@ function validateConfiguration() {
         throw new Error('Stripe publishable key not found in configuration. Please check server configuration.');
     }
 
-    console.log('✅ Stripe configuration validated successfully');
+    // Stripe configuration validated successfully
 }
 
 // Mobile Menu Functions
@@ -93,18 +93,14 @@ function initializeApp() {
             console.warn('⚠️ Cart total element not found');
         }
 
-        console.log('✅ DOM elements initialized successfully');
-        console.log('🛒 Cart modal found:', !!cartModal);
-        console.log('🛒 Cart count found:', !!cartCount);
-        console.log('🛒 Cart items found:', !!cartItems);
-        console.log('🛒 Cart total found:', !!cartTotal);
+        // DOM elements initialized successfully
 
         // Validate configuration
         validateConfiguration();
 
         // Check if Stripe is available (only log if we're on a page that needs it)
         if (typeof Stripe !== 'undefined') {
-            console.log('✅ Stripe library loaded successfully');
+            // Stripe library loaded successfully
         } else {
             // Only show error on pages that actually need Stripe (like checkout)
             if (window.location.pathname.includes('checkout') || window.location.pathname.includes('payment')) {
@@ -194,7 +190,7 @@ function updateCartDisplay() {
         // Retry after a short delay
         setTimeout(() => {
             if (window.RecipeRushCart && typeof window.RecipeRushCart.updateDisplay === 'function') {
-                console.log('✅ RecipeRushCart now available, updating display');
+                // RecipeRushCart now available, updating display
                 window.RecipeRushCart.updateDisplay();
             }
         }, 500);
@@ -211,7 +207,7 @@ function openCart() {
         const checkInterval = setInterval(() => {
             if (cartModal) {
                 clearInterval(checkInterval);
-                console.log('✅ Cart modal now available, opening cart...');
+                // Cart modal now available, opening cart
                 cartModal.style.display = 'block';
             }
         }, 100);
@@ -257,7 +253,7 @@ function showCheckoutForm() {
         return;
     }
 
-    console.log('Opening checkout form...');
+            // Opening checkout form
 
     // Populate checkout items
     const checkoutItems = document.getElementById('checkoutItems');
@@ -284,7 +280,7 @@ function showCheckoutForm() {
     closeCart();
     document.getElementById('checkoutModal').style.display = 'block';
 
-    console.log('Checkout modal displayed, initializing checkout form...');
+            // Checkout modal displayed, initializing checkout form
 
     // Initialize checkout form
     initializeStripe();
@@ -298,21 +294,21 @@ function closeCheckout() {
 
 function initializeStripe() {
     try {
-        console.log('Setting up checkout form...');
+        // Setting up checkout form
 
         // Handle form submission
         const checkoutForm = document.getElementById('checkoutForm');
         if (checkoutForm) {
-            console.log('Checkout form found, setting up event listener...');
+            // Checkout form found, setting up event listener
             // Remove existing listener to prevent duplicates
             checkoutForm.removeEventListener('submit', handleCheckoutSubmit);
             checkoutForm.addEventListener('submit', handleCheckoutSubmit);
-            console.log('Event listener attached successfully');
+            // Event listener attached successfully
         } else {
             console.error('Checkout form not found!');
         }
 
-        console.log('Checkout form initialized successfully');
+        // Checkout form initialized successfully
 
     } catch (error) {
         console.error('Error initializing checkout form:', error);
@@ -381,11 +377,34 @@ async function processPayment(firstName, lastName, email) {
 
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+        // Get CSRF token from meta tag
+        // Fetching CSRF token
+        const csrfResponse = await fetch('/csrf-token');
+        // CSRF response status
+        
+        if (!csrfResponse.ok) {
+            throw new Error(`CSRF token fetch failed: ${csrfResponse.status}`);
+        }
+        
+        const csrfData = await csrfResponse.json();
+        const csrfToken = csrfData.token;
+        // CSRF token received
+        // CSRF token length
+        
+        if (!csrfToken) {
+            throw new Error('CSRF token is empty');
+        }
+
         // Create checkout session via your backend
+        // Sending payment request
+        // CSRF token being sent
+        // Request headers
+        
         const response = await fetch('/create-checkout-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken
             },
             body: JSON.stringify({
                 items: items,

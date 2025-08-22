@@ -12,7 +12,10 @@ const urlsToCache = [
     '/success.html',
     '/styles.css',
     '/script.js',
-    '/js/config-loader.js'
+    '/catalog.js',
+    '/contact.js',
+    '/js/config-loader.js',
+    '/js/cart-manager.js'
 ];
 
 self.addEventListener('install', event => {

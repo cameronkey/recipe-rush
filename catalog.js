@@ -1,10 +1,10 @@
 // Catalog page specific functionality
 // SECURITY: Stripe keys are loaded securely from /api/config endpoint
-// No hardcoded keys are present in this file
+// No hardcoded keys present - keys loaded from /api/config endpoint
 
-// Access global functions (defined in script.js)
-const showNotification = window.showNotification || function(message, type) { console.log(`${type}: ${message}`); };
-const closeCart = window.closeCart || function() { console.log('closeCart called'); };
+// Fallback functions for cart operations
+const showNotification = window.showNotification || function(_message, _type) { /* Notification displayed */ };
+const closeCart = window.closeCart || function() { /* closeCart called */ };
 
 // Helper function to reset checkout button state
 function resetCheckoutButton() {
@@ -23,9 +23,6 @@ function resetCheckoutButton() {
 // toggleMobileMenu, openMobileMenu, and closeMobileMenu are defined globally
 
 // Checkout functionality
-function showCheckoutForm() {
-    // Access cart from global scope when function is called
-}
 function showCheckoutForm() {
     // Use cart manager instead of global cart variable
     const cart = window.RecipeRushCart.getItems();
@@ -100,11 +97,10 @@ function handleCheckoutSubmit(event) {
 
 async function processPayment(firstName, lastName, email) {
     try {
-        // Get CSRF token from meta tag
-        const csrfToken = document.getElementById('csrf-token-meta').getAttribute('content');
-        if (!csrfToken) {
-            throw new Error('CSRF token not available');
-        }
+        // Get CSRF token
+        const csrfResponse = await fetch('/csrf-token');
+        const csrfData = await csrfResponse.json();
+        const csrfToken = csrfData.token;
 
         // Access cart from cart manager
         const cart = window.RecipeRushCart.getItems();
@@ -122,7 +118,7 @@ async function processPayment(firstName, lastName, email) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'x-csrf-token': csrfToken
             },
             body: JSON.stringify(orderData)
         });
@@ -170,41 +166,18 @@ async function processPayment(firstName, lastName, email) {
     }
 }
 
-// Load CSRF token when page loads
-async function loadCSRFToken() {
-    try {
-        const response = await fetch('/csrf-token');
-        if (!response.ok) {
-            throw new Error(`Failed to fetch CSRF token: ${response.status}`);
-        }
-        const data = await response.json();
-        let metaElement = document.getElementById('csrf-token-meta');
-        if (!metaElement) {
-            metaElement = document.createElement('meta');
-            metaElement.id = 'csrf-token-meta';
-            document.head.appendChild(metaElement);
-        }
-        metaElement.setAttribute('content', data.token);
-        console.log('CSRF token loaded successfully');
-    } catch (error) {
-        console.error('Error loading CSRF token:', error);
-        showNotification('Failed to load security token. Please refresh the page.', 'error');
-    }
-}
+// CSRF token is now managed centrally by config-loader.js
+// No need for local implementation
 
+// Initialize page
 document.addEventListener('DOMContentLoaded', function() {
-    // Catalog page is now simplified to just show the single product
-    // All functionality is handled by the main script.js file
-    console.log('Catalog page loaded - single product display');
-
-    // Load CSRF token
-    loadCSRFToken();
+    // Catalog page loaded - single product display
 
     // Set up checkout form event listener
     const checkoutForm = document.getElementById('checkoutForm');
     if (checkoutForm) {
         checkoutForm.addEventListener('submit', handleCheckoutSubmit);
-        console.log('Checkout form event listener attached');
+        // Checkout form event listener attached
     }
 });
 
@@ -212,6 +185,5 @@ document.addEventListener('DOMContentLoaded', function() {
 window.catalogFunctions = {
     showCheckoutForm,
     handleCheckoutSubmit,
-    processPayment,
-    loadCSRFToken
+    processPayment
 };

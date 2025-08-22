@@ -31,7 +31,7 @@ services:
     name: reciperush-frontend
     env: static
     plan: starter
-    buildCommand: echo "Frontend is static HTML/CSS/JS"
+    buildCommand: ./build-production.sh
     startCommand: echo "Static site - no build needed"
     envVars:
       - key: NODE_ENV
