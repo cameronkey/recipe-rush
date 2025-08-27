@@ -48,6 +48,25 @@ if (process.env.NODE_ENV === 'production') {
             : true,
         credentials: true
     }));
+    
+    // Explicit CORS headers to ensure proper response
+    app.use((req, res, next) => {
+        const allowedOrigins = ['https://reciperush-frontend.onrender.com', 'https://reciperush.co.uk', 'https://www.reciperush.co.uk'];
+        const origin = req.headers.origin;
+        
+        if (allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        }
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        
+        if (req.method === 'OPTIONS') {
+            res.sendStatus(200);
+        } else {
+            next();
+        }
+    });
     app.use(express.json({ limit: '10mb' }));
 
     app.use(limiter);
