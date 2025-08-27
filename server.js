@@ -60,6 +60,9 @@ if (process.env.NODE_ENV === 'production') {
         res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         next();
     });
+    
+    // Serve static files before API routes to prevent interference
+    app.use(express.static('.'));
 }
 
 // CSRF token rate limiter - prevents token spamming
@@ -733,8 +736,7 @@ app.get('/api/status', (req, res) => {
     });
 });
 
-// Serve static files after API routes
-app.use(express.static('.'));
+
 
 // Start server only if not in test mode
 let server;
