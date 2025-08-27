@@ -413,9 +413,84 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
     spinner.classList.add('hidden');
 }
 
+// Test EmailJS functionality
+function testEmailJS() {
+    console.log('🧪 Testing EmailJS configuration...');
+    
+    // Check if EmailJS is loaded
+    if (typeof emailjs === 'undefined') {
+        console.error('❌ EmailJS library not loaded');
+        showNotification('EmailJS library not loaded', 'error');
+        return;
+    }
+    
+    console.log('✅ EmailJS library loaded');
+    
+    // Check configuration
+    if (!emailjsConfig) {
+        console.error('❌ EmailJS config not loaded');
+        showNotification('EmailJS configuration not loaded', 'error');
+        return;
+    }
+    
+    console.log('✅ EmailJS config loaded:', {
+        publicKey: emailjsConfig.publicKey,
+        serviceId: 'service_hngth6v',
+        templateId: 'template_nme9xdx'
+    });
+    
+    // Test email sending
+    const testParams = {
+        name: 'Test User',
+        subject: 'Test Subject - RecipeRush Contact Form',
+        message: 'This is a test message from RecipeRush contact form',
+        time: new Date().toLocaleString()
+    };
+    
+    console.log('📧 Sending test email with params:', testParams);
+    
+    emailjs.send('service_hngth6v', 'template_nme9xdx', testParams)
+        .then(function(response) {
+            console.log('✅ Test email sent successfully!', response);
+            showNotification('Test email sent successfully! Check your inbox.', 'success');
+        }, function(error) {
+            console.error('❌ Test email failed:', error);
+            showNotification(`Test email failed: ${error.text || error.message}`, 'error');
+        });
+}
+
+// Add test button to page
+function addTestButton() {
+    const contactForm = document.getElementById('contactForm');
+    if (!contactForm) return;
+    
+    // Check if test button already exists
+    if (document.getElementById('testEmailJSBtn')) return;
+    
+    const testBtn = document.createElement('button');
+    testBtn.type = 'button';
+    testBtn.id = 'testEmailJSBtn';
+    testBtn.textContent = '🧪 Test EmailJS';
+    testBtn.style.cssText = `
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        font-size: 14px;
+    `;
+    testBtn.onclick = testEmailJS;
+    
+    // Insert after the form
+    contactForm.parentNode.insertBefore(testBtn, contactForm.nextSibling);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     setupContactForm();
     setupFormValidation();
+    addTestButton(); // Add test button
     
     // Track page view
     if (typeof gtag !== 'undefined') {
@@ -609,6 +684,7 @@ async function submitContactForm(data) {
     // Prepare email template parameters to match the EmailJS template
     const templateParams = {
         name: `${data.firstName} ${data.lastName}`,
+        subject: data.subject,
         message: data.message,
         time: new Date().toLocaleString()
     };

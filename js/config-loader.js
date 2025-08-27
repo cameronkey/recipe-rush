@@ -15,6 +15,9 @@
             }
             const config = await response.json();
             window.RECIPE_RUSH_CONFIG = Object.freeze(config);
+            
+            // Signal that configuration is ready
+            window.dispatchEvent(new CustomEvent('configReady', { detail: config }));
         } catch (error) {
             console.error('❌ Configuration failed:', error);
             throw error;

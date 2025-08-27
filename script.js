@@ -110,19 +110,10 @@ function initializeApp() {
         if (window.RECIPE_RUSH_CONFIG) {
             validateConfiguration();
         } else {
-            // Configuration not loaded yet, wait for it
-            const checkConfig = setInterval(() => {
-                if (window.RECIPE_RUSH_CONFIG) {
-                    clearInterval(checkConfig);
-                    validateConfiguration();
-                }
-            }, 100);
-            
-            // Timeout after 10 seconds
-            setTimeout(() => {
-                clearInterval(checkConfig);
-                console.error('❌ Configuration loading timeout');
-            }, 10000);
+            // Listen for configuration ready event from config-loader.js
+            window.addEventListener('configReady', () => {
+                validateConfiguration();
+            }, { once: true });
         }
 
         // Check if Stripe is available (only log if we're on a page that needs it)
