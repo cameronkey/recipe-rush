@@ -95,8 +95,24 @@ function initializeApp() {
 
         // DOM elements initialized successfully
 
-        // Validate configuration
-        validateConfiguration();
+        // Wait for configuration to be loaded before validating
+        if (window.RECIPE_RUSH_CONFIG) {
+            validateConfiguration();
+        } else {
+            // Configuration not loaded yet, wait for it
+            const checkConfig = setInterval(() => {
+                if (window.RECIPE_RUSH_CONFIG) {
+                    clearInterval(checkConfig);
+                    validateConfiguration();
+                }
+            }, 100);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(checkConfig);
+                console.error('❌ Configuration loading timeout');
+            }, 10000);
+        }
 
         // Check if Stripe is available (only log if we're on a page that needs it)
         if (typeof Stripe !== 'undefined') {
