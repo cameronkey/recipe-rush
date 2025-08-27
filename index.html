@@ -3,6 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Transform your kitchen with 80 professional recipes from RecipeRush. Master chef-quality dishes guaranteed to impress. Get instant access to our premium recipe collection.">
+    <meta name="keywords" content="recipes, cooking, chef recipes, professional cooking, kitchen, culinary, food, cooking guide, recipe collection, master chef">
+    <meta name="author" content="RecipeRush">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="RecipeRush - Premium Recipe Collection">
+    <meta property="og:description" content="Transform your kitchen with 80 professional recipes from RecipeRush. Master chef-quality dishes guaranteed to impress.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reciperush.co.uk/">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&h=630&fit=crop">
+    <meta property="og:site_name" content="RecipeRush">
+    <link rel="canonical" href="https://reciperush.co.uk/">
     <title>RecipeRush - Premium Recipe Collection</title>
     
     <!-- Google Analytics -->
@@ -20,6 +31,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
+    
+    <!-- Schema.org structured data for rich snippets -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "RecipeRush",
+        "url": "https://reciperush.co.uk",
+        "logo": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
+        "description": "Premium recipe collection with 80 professional recipes guaranteed to make you cook like a master chef",
+        "sameAs": [
+            "https://www.youtube.com/@Recipe_Rush",
+            "https://www.tiktok.com/@recipe_rush0",
+            "https://www.instagram.com/recipe__rush/"
+        ]
+    }
+    </script>
 </head>
 <body data-page-scripts="">
     <!-- Header -->
@@ -79,9 +107,7 @@
                     <a href="https://www.instagram.com/recipe__rush/" target="_blank" aria-label="Instagram">
                         <i class="fab fa-instagram"></i>
                     </a>
-                    <a href="#" target="_blank" aria-label="Facebook" class="facebook-placeholder">
-                        <i class="fab fa-facebook"></i>
-                    </a>
+                    
                 </div>
             </div>
         </nav>
@@ -112,40 +138,36 @@
             <div class="product-card">
                 <div class="product-images">
                     <div class="main-image">
-                        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop" alt="Recipe Collection" id="mainImage">
+                        <img src="images/recipe-rush-pdp-image-one.jpg" alt="RecipeRush Premium Recipe Collection - Professional cooking recipes" id="mainImage">
                     </div>
                     <div class="thumbnail-images">
-                        <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100&h=75&fit=crop" 
-                             srcset="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop 1x, https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop 2x"
-                             data-full-src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop"
-                             alt="Recipe 1" 
+                        <img src="images/recipe-rush-pdp-image-one.jpg" 
+                             data-full-src="images/recipe-rush-pdp-image-one.jpg"
+                             alt="Recipe Collection Preview - Cooking ingredients" 
                              onclick="changeImage(this.dataset.fullSrc)" 
                              class="thumbnail active"
                              width="100" 
                              height="75" 
                              loading="lazy">
-                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=100&h=75&fit=crop" 
-                             srcset="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&h=150&fit=crop 1x, https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop 2x"
-                             data-full-src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop"
-                             alt="Recipe 2" 
+                        <img src="images/recipe-rush-pdp-image-two.jpg" 
+                             data-full-src="images/recipe-rush-pdp-image-two.jpg"
+                             alt="Recipe Collection Preview - Fresh vegetables" 
                              onclick="changeImage(this.dataset.fullSrc)" 
                              class="thumbnail"
                              width="100" 
                              height="75" 
                              loading="lazy">
-                        <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=75&fit=crop" 
-                             srcset="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&h=150&fit=crop 1x, https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop 2x"
-                             data-full-src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop"
-                             alt="Recipe 3" 
+                        <img src="images/recipe-rush-pdp-image-three.jpg" 
+                             data-full-src="images/recipe-rush-pdp-image-three.jpg"
+                             alt="Recipe Collection Preview - Gourmet cooking" 
                              onclick="changeImage(this.dataset.fullSrc)" 
                              class="thumbnail"
                              width="100" 
                              height="75" 
                              loading="lazy">
-                        <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=100&h=75&fit=crop" 
-                             srcset="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=200&h=150&fit=crop 1x, https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=300&fit=crop 2x"
-                             data-full-src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=300&fit=crop"
-                             alt="Recipe 4" 
+                        <img src="images/recipe-rush-pdp-image-four.jpg" 
+                             data-full-src="images/recipe-rush-pdp-image-four.jpg"
+                             alt="Recipe Collection Preview - Professional kitchen" 
                              onclick="changeImage(this.dataset.fullSrc)" 
                              class="thumbnail"
                              width="100" 
@@ -244,9 +266,7 @@
                         <a href="https://www.instagram.com/recipe__rush/" target="_blank" aria-label="Instagram">
                             <i class="fab fa-instagram"></i>
                         </a>
-                        <a href="#" target="_blank" aria-label="Facebook" class="facebook-placeholder">
-                            <i class="fab fa-facebook"></i>
-                        </a>
+
                     </div>
                 </div>
             </div>
