@@ -44,14 +44,14 @@ if (process.env.NODE_ENV === 'production') {
     // CORS must come BEFORE rate limiting to allow cross-origin requests
     app.use(cors({
         origin: process.env.NODE_ENV === 'production' 
-            ? ['https://recipe-rush.onrender.com', 'https://reciperush.co.uk', 'https://www.reciperush.co.uk']
+            ? ['https://reciperush.co.uk', 'https://www.reciperush.co.uk']
             : true,
         credentials: true
     }));
     
     // Explicit CORS headers to ensure proper response
     app.use((req, res, next) => {
-        const allowedOrigins = ['https://recipe-rush.onrender.com', 'https://reciperush.co.uk', 'https://www.reciperush.co.uk'];
+        const allowedOrigins = ['https://reciperush.co.uk', 'https://www.reciperush.co.uk'];
         const origin = req.headers.origin;
         
         if (allowedOrigins.includes(origin)) {
