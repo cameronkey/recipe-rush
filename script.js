@@ -402,7 +402,7 @@ async function processPayment(firstName, lastName, email) {
 
         // Get CSRF token from meta tag
         // Fetching CSRF token
-        const csrfResponse = await fetch('/csrf-token');
+        const csrfResponse = await fetch('https://reciperush-backend.onrender.com/csrf-token');
         // CSRF response status
         
         if (!csrfResponse.ok) {
@@ -423,7 +423,7 @@ async function processPayment(firstName, lastName, email) {
         // CSRF token being sent
         // Request headers
         
-        const response = await fetch('/create-checkout-session', {
+        const response = await fetch('https://reciperush-backend.onrender.com/create-checkout-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -451,7 +451,7 @@ async function processPayment(firstName, lastName, email) {
         } else if (data && data.sessionId) {
             // Back-compat if server still returns only sessionId
             showNotification('Redirecting to secure payment...', 'success');
-            window.location.href = `/checkout-session/${data.sessionId}`;
+            window.location.href = `https://reciperush-backend.onrender.com/checkout-session/${data.sessionId}`;
         } else {
             throw new Error('No checkout URL or sessionId received');
         }

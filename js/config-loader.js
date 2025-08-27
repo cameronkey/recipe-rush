@@ -9,7 +9,7 @@
     // Load configuration
     async function loadConfiguration() {
         try {
-            const response = await fetch('/api/config');
+            const response = await fetch('https://reciperush-backend.onrender.com/api/config');
             if (!response.ok) {
                 throw new Error(`Failed to load configuration: ${response.status}`);
             }
