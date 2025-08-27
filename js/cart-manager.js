@@ -46,6 +46,22 @@
 
             this.saveToStorage();
             this.updateDisplay();
+            
+            // Track add to cart event for analytics
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'add_to_cart', {
+                    items: [{
+                        item_id: product.id,
+                        item_name: product.name,
+                        price: product.price,
+                        currency: 'GBP',
+                        quantity: product.quantity
+                    }],
+                    value: product.price * product.quantity,
+                    currency: 'GBP'
+                });
+            }
+            
             console.log('✅ Item added to cart:', product.name);
         },
 

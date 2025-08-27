@@ -98,7 +98,7 @@ function handleCheckoutSubmit(event) {
 async function processPayment(firstName, lastName, email) {
     try {
         // Get CSRF token
-        const csrfResponse = await fetch('https://recipe-rush.onrender.com/csrf-token');
+        const csrfResponse = await fetch('https://reciperush.co.uk/csrf-token');
         const csrfData = await csrfResponse.json();
         const csrfToken = csrfData.token;
 
@@ -114,7 +114,7 @@ async function processPayment(firstName, lastName, email) {
         };
 
         // Send order to server to create Stripe checkout session
-        const response = await fetch('https://recipe-rush.onrender.com/create-checkout-session', {
+        const response = await fetch('https://reciperush.co.uk/create-checkout-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -172,6 +172,14 @@ async function processPayment(firstName, lastName, email) {
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Catalog page loaded - single product display
+    
+    // Track page view
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'page_view', {
+            page_title: 'Recipe Catalog',
+            page_location: window.location.href
+        });
+    }
 
     // Set up checkout form event listener
     const checkoutForm = document.getElementById('checkoutForm');

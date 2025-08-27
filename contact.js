@@ -32,7 +32,7 @@ async function getEmailJSConfig() {
         }
 
         // Fallback: fetch config directly if not available globally
-        const response = await fetch('https://recipe-rush.onrender.com/api/config');
+        const response = await fetch('https://reciperush.co.uk/api/config');
         if (!response.ok) {
             throw new Error(`Failed to fetch config: ${response.status} ${response.statusText}`);
         }
@@ -316,7 +316,7 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
         try {
             console.log(`Attempt ${attempt + 1}/${FETCH_CONFIG.MAX_RETRIES + 1} to create checkout session`);
 
-            const response = await fetch('https://recipe-rush.onrender.com/create-checkout-session', {
+            const response = await fetch('https://reciperush.co.uk/create-checkout-session', {
                 method: 'POST',
                 headers: requestHeaders,
                 body: JSON.stringify(requestBody),
@@ -416,6 +416,14 @@ async function createCheckoutSessionWithRetry(items, email, firstName, lastName,
 document.addEventListener('DOMContentLoaded', function() {
     setupContactForm();
     setupFormValidation();
+    
+    // Track page view
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'page_view', {
+            page_title: 'Contact Us',
+            page_location: window.location.href
+        });
+    }
 
     // Pre-initialize EmailJS for better user experience
     initializeEmailJS().catch(error => {
