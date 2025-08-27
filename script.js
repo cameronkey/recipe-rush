@@ -24,6 +24,17 @@ function validateConfiguration() {
 }
 
 // Mobile Menu Functions
+function toggleMobileMenu() {
+    const mobileMenu = document.querySelector('.mobile-menu');
+    const burgerButton = document.querySelector('.burger-menu');
+    
+    if (mobileMenu.classList.contains('active')) {
+        closeMobileMenu();
+    } else {
+        openMobileMenu();
+    }
+}
+
 function openMobileMenu() {
     const mobileMenu = document.querySelector('.mobile-menu');
     const burgerButton = document.querySelector('.burger-menu');
