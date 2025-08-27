@@ -44,7 +44,7 @@ if (process.env.NODE_ENV === 'production') {
     // CORS must come BEFORE rate limiting to allow cross-origin requests
     app.use(cors({
         origin: process.env.NODE_ENV === 'production' 
-            ? ['https://reciperush-frontend.onrender.com', 'https://reciperush.uk']
+            ? ['https://reciperush-frontend.onrender.com', 'https://reciperush.co.uk']
             : true,
         credentials: true
     }));
