@@ -38,18 +38,15 @@
         try {
             await loadConfiguration();
             
-            // Load required scripts
-            await loadScript('js/cart-manager.js');
-            await loadScript('script.js');
-            
-            // Load page-specific script if needed
-            const url = new URL(window.location.href);
-            const currentPage = url.pathname.split('/').pop()?.toLowerCase();
-            if (currentPage === 'catalog.html') {
-                await loadScript('catalog.js');
-            } else if (currentPage === 'contact.html') {
-                await loadScript('contact.js');
+            // Only load cart-manager.js if not already loaded
+            if (!window.cartManagerLoaded) {
+                await loadScript('js/cart-manager.js');
+                window.cartManagerLoaded = true;
             }
+            
+            // Don't load script.js, catalog.js, or contact.js - they're already loaded by HTML
+            // This prevents duplicate loading and conflicts
+            
         } catch (error) {
             console.error('❌ Initialization failed:', error);
         }
