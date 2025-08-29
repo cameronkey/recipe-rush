@@ -190,7 +190,7 @@ function addToCart() {
         name: 'The Complete Recipe Collection',
         price: 10.00,
         quantity,
-        image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100&h=75&fit=crop'
+        image: 'https://reciperush.co.uk/images/recipe-rush-pdp-image-one.jpg'
     };
 
     // Use the cart manager to add the item
@@ -413,7 +413,7 @@ async function processPayment(firstName, lastName, email) {
             name: item.name,
             price: item.price,
             quantity: item.quantity,
-            image: item.image || 'https://via.placeholder.com/150x150?text=Recipe'
+            image: item.image || 'https://reciperush.co.uk/images/recipe-rush-pdp-image-one.jpg'
         }));
 
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
