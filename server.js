@@ -738,6 +738,30 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Clean URL routes for main pages
+app.get('/catalog', (req, res) => {
+    res.sendFile(path.join(__dirname, 'catalog.html'));
+});
+
+app.get('/contact', (req, res) => {
+    res.sendFile(path.join(__dirname, 'contact.html'));
+});
+
+// 301 redirects from legacy .html paths to clean URLs
+const legacyRedirects = {
+    '/index.html': '/',
+    '/catalog.html': '/catalog',
+    '/contact.html': '/contact'
+};
+
+app.get(Object.keys(legacyRedirects), (req, res) => {
+    const target = legacyRedirects[req.path];
+    if (target) {
+        return res.redirect(301, target);
+    }
+    res.status(404).end();
+});
+
 // API status endpoint
 app.get('/api/status', (req, res) => {
     res.json({
