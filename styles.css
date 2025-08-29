@@ -410,7 +410,19 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-2);
+}
+
+.urgency-message {
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-4);
+    color: var(--red-600);
+    background: var(--gray-50);
+    border: 1px solid var(--red-600);
+    border-radius: var(--radius-md);
+    padding: var(--space-3) var(--space-4);
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .current-price {
@@ -444,6 +456,7 @@ body {
     color: var(--gray-600);
     font-size: 1.1rem;
 }
+
 
 .product-features {
     margin-bottom: var(--space-8);
