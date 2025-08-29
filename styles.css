@@ -22,10 +22,15 @@
     --gray-900: #111827;
     
     /* Success & Error */
-    --green-500: #10b981;
-    --green-600: #059669;
+    --red-50: #fee4e2;
+    --red-100: #ffe1de;
+    --red-200: #f3b8b3;
+    --red-300: #ee9f99;
     --red-500: #ef4444;
     --red-600: #dc2626;
+    --red-700: #b91c1c;
+    --green-500: #10b981;
+    --green-600: #059669;
     --orange-500: #f59e0b;
     
     /* Focus Colors */
@@ -417,8 +422,8 @@ body {
     margin-top: var(--space-2);
     margin-bottom: var(--space-4);
     color: var(--red-600);
-    background: var(--gray-50);
-    border: 1px solid var(--red-600);
+    background: var(--red-50);
+    border: 1px solid var(--red-200);
     border-radius: var(--radius-md);
     padding: var(--space-3) var(--space-4);
     font-weight: 600;
